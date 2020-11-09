@@ -1,0 +1,7 @@
+2020-11-09
+今日主要研究点如下
+1. lua require文件时 local gm = require "role.gm" 是如何处理这个点号和目录分割符号/
+2. pre_load的作用
+3. lua c库的加载 比如luaopen_socket 是找到一个socket库还是打开所有库找一个luaopen_socket模块名
+4. tcp 重传逻辑的理解
+5. one leetcode

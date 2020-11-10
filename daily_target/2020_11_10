@@ -1,0 +1,34 @@
+今天再次思考了lua 的require c库这一模块
+lua加载c库的源码来看
+static int searcher_C (lua_State *L) {
+582   const char *name = luaL_checkstring(L, 1);
+584   const char *filename = findfile(L, name, "cpath", LUA_CSUBSEP);
+585   if (filename == NULL) return 1;  /* module not found in this path */
+586   return checkload(L, (loadfunc(L, filename, name) == 0), filename);
+587 }
+跟查找lua代码的模式来看 都是一样把文件名中的点换成/目录分割符
+例如require "skynet.core"
+在582标号处 还是 skynet.core，进入加载通用的findfile函数中则会 会把。替换成/ 变成skynet/core 由因为是cpath 所以lua的查找路径会变成如下所示
+in searcher_C name:skynet.core
+in findfile path:/usr/local/lib/lua/5.4/?.so;/usr/local/lib/lua/5.4/loadall.so;./?.so
+in searchpath filename:/usr/local/lib/lua/5.4/skynet/core.so
+in searchpath filename:/usr/local/lib/lua/5.4/loadall.so
+in searchpath filename:./skynet/core.so
+in findfile path:/usr/local/lib/lua/5.4/?.so;/usr/local/lib/lua/5.4/loadall.so;./?.so
+in searchpath filename:/usr/local/lib/lua/5.4/skynet.so
+in searchpath filename:/usr/local/lib/lua/5.4/loadall.so
+in searchpath filename:./skynet.so
+这里它竟然会去搜索skynet.so 让我很诧异 竟然没有看到这里 然后我为了验证是否只会去查找路径最开始的单词.so
+我又测试如下代码
+require“skynet.core.lua”
+in searcher_C name:skynet.core.lua
+in findfile path:/usr/local/lib/lua/5.4/?.so;/usr/local/lib/lua/5.4/loadall.so;./?.so
+in searchpath filename:/usr/local/lib/lua/5.4/skynet/core/lua.so
+in searchpath filename:/usr/local/lib/lua/5.4/loadall.so
+in searchpath filename:./skynet/core/lua.so
+in findfile path:/usr/local/lib/lua/5.4/?.so;/usr/local/lib/lua/5.4/loadall.so;./?.so
+in searchpath filename:/usr/local/lib/lua/5.4/skynet.so
+in searchpath filename:/usr/local/lib/lua/5.4/loadall.so
+in searchpath filename:./skynet.so
+
+所以这就是lua加载c模块的逻辑了！

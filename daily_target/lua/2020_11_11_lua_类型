@@ -106,5 +106,14 @@ luaM_malloc_源码如下主要就是进行内存分配
 201   }
 202 }
 
+在具体的代码中， TValue用于统一地表示数据，而一旦知道了具体的类型，就需要使用具体
+的类型了 因此，代码中有不少涉及TValue与具体类型之间转换的代码，其主要逻辑都是将TValue
+中的tt value 具体类型的数据进行转换 比如，将lua Number转换为TValue setn value
+代码是这样的：
+(!object. h) 
+119 #define setnvalue(obj,x) \ 
+120 { TValue =( obj); i_o->value.n=(x); i_o- >tt=LUA_TNUMBER; } 
+这部分的代码逻辑和命名都 不多，这里就不再列出了
+
 
  

@@ -1,0 +1,58 @@
+本来想研究lua table的 结果看源码却把我引导到了lua 类型的实现和gc的实现上
+所有lua类型的底层都是
+一 lua 类型源码实现 所以非gc类型 从lobject.h源码中看,lua所有类型底层都是一个枚举值
+/*
+ 45 ** Union of all Lua values 
+ 46 */
+ 47 typedef union Value {      
+ 48   struct GCObject *gc;    /* collectable objects */
+ 49   void *p;         /* light userdata */
+ 50   lua_CFunction f; /* light C functions */
+ 51   lua_Integer i;   /* integer numbers */
+ 52   lua_Number n;    /* float numbers */
+ 53 } Value;                   
+ 54 
+ 55 
+ 56 /*
+ 57 ** Tagged Values. This is the basic representation of values in Lua:
+ 58 ** an actual value plus a tag with its type.
+ 59 */
+ 60 
+ 61 #define TValuefields    Value value_; lu_byte tt_
+ 62 
+ 63 typedef struct TValue {    
+ 64   TValuefields;            
+ 65 } TValue;
+ 看到union 先复习一下 union
+ 什么时候需要union?
+ 当多个数据需要共享内存或者多个数据每次只取其一时，可以利用联合体
+ 1) 联合体是一个结构
+ 2) 它的所有成员相对于基地址的偏移量都为0
+ 3）此结构空间要足够大到足够容纳最宽的成员
+ 4)其对齐方式要适合其中所有成员
+ //例子
+  1 #include<stdio.h>          
+  2 #include<stdlib.h>         
+  3 typedef union {            
+  4     char s[7];
+  5     int n;                 
+  6     double d;
+  7 } U;
+  8 
+  9 int
+ 10 main( int argc, char* argv[] ) {
+ 11     printf( "sizeof U:%d\n", sizeof( U ) ); 
+ 12     return 0;
+ 13 }
+ 通过编译执行得出 sizeof U:8
+ 解析s 7个字节 n 4个字节 double 8个字节 所以8个字节就能把所有的数据存完
+ 
+ 但是当
+  3 typedef union {            
+  4     char s[9];
+  5     int n;                 
+  6     double d;
+  7 } U;
+  8 s 9个字节 n 4个字节 double 8个字节 放不下s 所以补充到16个字节这样就既能被4整除又能被8整除
+
+ 

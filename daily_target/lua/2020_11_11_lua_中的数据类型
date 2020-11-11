@@ -1,0 +1,51 @@
+因为Lua是一门动态类型的脚本语言，这意味着同一个变量可以在不同时刻指向不同类型的数据,最后发现自己下了一本lua的设计与实现所以计划一天看一章 一周多看完，虽然很快但是必须要保证看的质量
+所以类型的底层是一个union,源码如下
+ /*
+ 45 ** Union of all Lua values
+ 46 */
+ 47 typedef union Value {
+ 48   struct GCObject *gc;    /* collectable objects */
+ 49   void *p;         /* light userdata */
+ 50   lua_CFunction f; /* light C functions */
+ 51   lua_Integer i;   /* integer numbers */
+ 52   lua_Number n;    /* float numbers */
+ 53 } Value;
+ 54 
+ 55 
+ 56 /*
+ 57 ** Tagged Values. This is the basic representation of values in Lua:
+ 58 ** an actual value plus a tag with its type.
+ 59 */
+ 60 
+ 61 #define TValuefields    Value value_; lu_byte tt_
+ 62   
+ 63 typedef struct TValue {
+ 64   TValuefields;
+ 65 } TValue;
+
+在Lua 中就使用了GCObject联合体将所有需要进行垃圾回收的数据类型囊括了进来：
+lstate.h
+/* 
+134 Unio of all collectable objects 
+135 */ 
+136 union GCObject { 
+137 GCheader gch; 
+138 union TString ts; 
+139 union Udata u; 
+140 union Closure cl; 
+141 struct Table h; 
+142 struct Proto p; 
+143 struct UpVal uv; 
+144 struct lua_State th; /* thread */ 
+145 };
+所以总结得出 
+1. 需要gc的 lua数据类型，就必然是以必然以CommonHeader作为该结构体定义的最开始部分
+文中提到了c++类的实现原理
+如果类有继承关系
+低地址----------------------------------高地址
+父类的成员|本类的成员
+
+2. GCO ject这个联合体，将所有需要进行垃圾回收的数据类型全部囊括其中，这样定位和查找不同类型的数据时就方便多了
+
+
+仅表示需要进行垃圾回收的数据类型还不够，还有几种数据类型是不需要进行垃圾回收的，Lua中将GCObject 和它们 起放在了联合体Value 中：

@@ -1,1 +1,104 @@
 主要是理解tcp的连接建立
+tcp连接是经过3次握手
+可以通过一个程序和tcpdump 工具来进行验证和查看
+
+linux 服务器端程序 后面都会用这个程序扩展
+  1 #include<stdio.h>          
+  2 #include<stdlib.h>         
+  3 #include<unistd.h>         
+  4 #include<errno.h>
+  5 #include<sys/socket.h>     
+  6 #include<sys/types.h>      
+  7 #include<netinet/in.h>     
+  8 
+  9 #define MAX_LEN 10
+ 10 typedef struct sockaddr SA;
+ 11 
+ 12 int
+ 13 main( int argc, char* argv[] ) {
+ 14     socklen_t len;
+ 15     struct sockaddr_in servaddr, cliaddr;
+ 16     int listen_fd = socket( AF_INET, SOCK_STREAM, 0 );
+ 17     if ( listen_fd < 0 ) {
+ 18         printf( "create listen_fd err:%d\n", errno );
+ 19         return -1;
+ 20     }
+ 21 
+ 22 //  bzero( &servaddr, sizeof( servaddr ) );
+ 23     servaddr.sin_family = AF_INET;  
+ 24     servaddr.sin_addr.s_addr = htonl( INADDR_ANY );
+ 25     servaddr.sin_port = htons(8888);
+ 26     if ( bind( listen_fd, ( SA* )&servaddr, sizeof(servaddr) ) ) {
+ 27         printf( "bind error:%d\n", errno );
+ 28         return -1;
+ 29     }
+ 30 
+ 31     printf( "create listen_fd:%d over\n", listen_fd );
+ 32     int opt_val = 0;
+ 33     int opt_len = 0;
+ 34     if ( getsockopt( listen_fd, SOL_SOCKET, SO_TYPE, &opt_val, &opt_len ) ) {
+ 35         printf( "getsockopt err:%d\n", errno );
+ 36         return -1;
+ 37     }
+ 38 
+ 39     printf( "socket stat:%d\n", opt_val );
+ 40 
+ 41 //  getchar();
+ 42 
+ 43     if ( listen( listen_fd, MAX_LEN ) ) {
+ 44         printf( "listen error:%d\n", errno );
+ 45         return -1;
+ 46     }
+ 47 
+ 48     printf( "after listen\n" );
+ 49     if ( getsockopt( listen_fd, SOL_SOCKET, SO_TYPE, &opt_val, &opt_len ) ) {
+ 50         printf( "getsockopt err:%d\n", errno );
+ 51         return -1;
+ 52     }
+ 53 
+ 54     printf( "socket stat:%d\n", opt_val );
+ 55 
+ 56     for ( ; ; ) {
+ 57         len = sizeof( cliaddr );
+ 58         int connfd = accept( listen_fd, ( SA* )&cliaddr, &len );
+ 59         printf( "connect success cliaddr:%d\n", cliaddr.sin_addr.s_addr );
+ 60     }
+ 61     return 0;
+ 62 }
+ 
+ 客户端用go语言写的 快捷
+ 现在只看三次握手的过程
+ package main
+
+import("net")
+
+func main() {
+	net.Dial("tcp", "106.12.158.133:8888")
+}
+
+然后在linux服务器上进行tcpdump port 8888
+root@instance-u1n6fu49:~# tcpdump port 8888 -S
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+19:13:37.338445 IP 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2095 > instance-u1n6fu49.8888: Flags [S], seq 958529609, win 8192, optio0
+19:13:37.338508 IP instance-u1n6fu49.8888 > 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2095: Flags [S.], seq 1352303147, ack 9585296100
+19:13:37.376004 IP 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2095 > instance-u1n6fu49.8888: Flags [.], ack 1352303148, win 260, lengt0
+19:13:37.400924 IP 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2095 > instance-u1n6fu49.8888: Flags [R.], seq 958529610, ack 13523031480
+^C
+4 packets captured
+4 packets received by filter
+0 packets dropped by kernel
+root@instance-u1n6fu49:~#
+解析
+
+标志 这个就是上一节讲得tcp头部中的4位标志位
+S SYN 同步序号
+F FIN 发送方完成数据的发送
+R RST 复位连接
+P PSH 尽可能快的把数据送往接收进程
+
+
+源地址.port>目标地址.port
+第一行 [s] s是SYN的标记 seq为计算出来的起始序列号 win代表的是源地址的套接字接收窗口大小
+第二行 [s.] 也是一个SYN标记 并且发送了自己的起始序列号 并且回了一个ack 即接下来期望从发送端收到的序号 一般为收到的消息的序号+1 此例中 上一条seq 958529609 所以回复一个 ack 9585296100 .代表以上标记都置0
+第三行 [.] 就发起方回复了一个ack 所以他把四位都置为了0 即.

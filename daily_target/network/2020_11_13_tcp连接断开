@@ -1,0 +1,16 @@
+tcp连接建立需要三次握手,而终止一个连接要经过4次握手
+这是由于tcp的半关闭造成的，既然一个tcp是全双工的(即数据在两个方向上能同时传递) 因此每个方向上都必须单独的关闭
+
+收到一个FIN标志位为1的包 即FIN包 只意味着对方不再有数据发过来,但是自己还可以发数据过去
+解析可以参考tcp连接的解析
+20:32:07.372270 IP 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2102 > instance-u1n6fu49.8888: Flags [S], seq 565159884, win 8192, optio0
+20:32:07.372335 IP instance-u1n6fu49.8888 > 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2102: Flags [S.], seq 1942685378, ack 5651598850
+20:32:07.418786 IP 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2102 > instance-u1n6fu49.8888: Flags [.], ack 1, win 260, length 0
+20:32:07.429308 IP 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2102 > instance-u1n6fu49.8888: Flags [F.], seq 1, ack 1, win 260, length0
+20:32:07.431001 IP instance-u1n6fu49.8888 > 13.251.89.218.broad.ls.sc.dynamic.163data.com.cn.2102: Flags [.], ack 2, win 502, length 0
+第5行 客户端 [F.] 即发送了一个标志位F置1 即发送一个关闭连接的请求同时 seq 
+第6行 [.] 服务器回给客户端一个FIN的ack
+我这边没有正常流程的关闭所以应该会再收到一个
+[F.] FIN seq* 即客户端也发起关闭的FIN包
+[.]来自服务器的ack 自从断开连接完成
+

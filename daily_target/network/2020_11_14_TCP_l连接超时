@@ -1,0 +1,58 @@
+今天主要学习tcp连接超时相关逻辑
+主要还是用tcp抓包
+在公司外网机代码如下:
+开启了一个tcp监听服务器
+package main
+
+import(
+	"net"
+	"fmt"
+)
+
+func main() {
+	ln, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		// handle error
+	}
+	fmt.Println("listen success")
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			// handle error
+			continue
+		}
+		//go handleConnection(conn)
+		fmt.Println("accept success")
+		if conn == nil {
+		}
+	}
+}
+
+在云服务器上 客户端代码如下
+package main
+  2                            
+  3 
+  4 import(
+  5     "net"
+  6 )
+  7 
+  8 func main() {
+  9     net.Dial("tcp", "10.0.18.104:8888")
+ 10 }
+ 用tcpdump抓包数据如下:
+ 11:03:12.289526 IP instance-u1n6fu49.46050 > 10.0.18.104.8888: Flags [S], seq 2363490347, win 64240, options [mss 1460,sackOK,TS val 54885280
+11:03:13.291022 IP instance-u1n6fu49.46050 > 10.0.18.104.8888: Flags [S], seq 2363490347, win 64240, options [mss 1460,sackOK,TS val 54885380
+11:03:15.307012 IP instance-u1n6fu49.46050 > 10.0.18.104.8888: Flags [S], seq 2363490347, win 64240, options [mss 1460,sackOK,TS val 54885580
+11:03:19.563035 IP instance-u1n6fu49.46050 > 10.0.18.104.8888: Flags [S], seq 2363490347, win 64240, options [mss 1460,sackOK,TS val 54886010
+11:03:27.755016 IP instance-u1n6fu49.46050 > 10.0.18.104.8888: Flags [S], seq 2363490347, win 64240, options [mss 1460,sackOK,TS val 54886830
+11:03:43.883016 IP instance-u1n6fu49.46050 > 10.0.18.104.8888: Flags [S], seq 2363490347, win 64240, options [mss 1460,sackOK,TS val 54888440
+11:04:16.395026 IP instance-u1n6fu49.46050 > 10.0.18.104.8888: Flags [S], seq 2363490347, win 64240, options [mss 1460,sackOK,TS val 54891690
+
+此时客户端一直卡在net.Dial上 因为连接不上
+第一行发起一次[S] SYN包 win 表示服务器接收缓冲区大小为62440个报文 mss 最大报文长度为1460字节
+第二行 超时1秒 再次触发SYN包 和上面一样
+第三行 超时2秒 再次触发SYN包
+都是成倍增长超时时间 然后再发SYN包
+
+最后尝试了七次以后 tcp放弃 客户端程序退出
+也很容易联想到王者荣耀断线重连次数为8次 那也是tcp重连机制

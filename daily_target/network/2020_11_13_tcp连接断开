@@ -14,3 +14,127 @@ tcp连接建立需要三次握手,而终止一个连接要经过4次握手
 [F.] FIN seq* 即客户端也发起关闭的FIN包
 [.]来自服务器的ack 自从断开连接完成
 
+2020_11_17 今天又重新写代码把tcp状态给理解了一遍
+
+服务器端代码如下:
+  7 #include<netinet/in.h>     
+  8 #include<pthread.h>        
+  9 
+ 10 #define MAX_LEN 10
+ 11 typedef struct sockaddr SA;
+ 12 
+ 13 void*                      
+ 14 handler_conn( void* arg ) {
+ 15     int connfd = *((int*)arg);
+ 16     printf( "pthread create success fd:%d\n", connfd );
+ 17     for ( ; ; ) {
+ 18         char buff[256] = { '0' };       
+ 19         if( read( connfd, buff, sizeof(buff) ) == 0 ) {
+ 20             printf( "client closed\n" );    
+ 21             send(connfd, buff, sizeof(buff), 0);
+ 22             close( connfd );
+ 23             return NULL;
+ 24         }
+ 25     }
+ 26     return NULL;
+ 27 }
+ 28 
+ 29 int
+ 30 main( int argc, char* argv[] ) {
+ 31     socklen_t len;
+ 32     struct sockaddr_in servaddr, cliaddr;
+ 33     int listen_fd = socket( AF_INET, SOCK_STREAM, 0 );
+ 34     if ( listen_fd < 0 ) {
+ 35         printf( "create listen_fd err:%d\n", errno );
+ 36         return -1;
+ 37     }
+ 38 
+ 39 //  bzero( &servaddr, sizeof( servaddr ) );
+ 40     servaddr.sin_family = AF_INET;
+ 41     servaddr.sin_addr.s_addr = htonl( INADDR_ANY );
+ 42     servaddr.sin_port = htons(8888);
+ 43     if ( bind( listen_fd, ( SA* )&servaddr, sizeof(servaddr) ) ) {
+ 44         printf( "bind error:%d\n", errno );
+ 45         return -1;
+ 46     }
+ 47 
+ 48     printf( "create listen_fd:%d over\n", listen_fd );
+ 49     int opt_val = 0;
+ 50     int opt_len = 0;
+ 51     if ( getsockopt( listen_fd, SOL_SOCKET, SO_TYPE, &opt_val, &opt_len ) ) {
+ 52         printf( "getsockopt err:%d\n", errno );
+ 53         return -1;
+ 54     }
+ 55 
+ 56     printf( "socket stat:%d\n", opt_val );
+ 57 
+ 58 //  getchar();
+ 59 
+ 60     if ( listen( listen_fd, MAX_LEN ) ) {
+ 61         printf( "listen error:%d\n", errno );
+ 62         return -1;
+ 63     }
+ 64 
+ 65     printf( "after listen\n" );
+ 66     if ( getsockopt( listen_fd, SOL_SOCKET, SO_TYPE, &opt_val, &opt_len ) ) {
+ 67         printf( "getsockopt err:%d\n", errno );
+ 68         return -1;
+ 69     }
+ 70 
+ 71     printf( "socket stat:%d\n", opt_val );
+ 72 
+ 73     for ( ; ; ) {
+ 74         len = sizeof( cliaddr );
+ 75         int connfd = accept( listen_fd, ( SA* )&cliaddr, &len );
+ 76         printf( "connect success cliaddr:%d, fd:%d\n", cliaddr.sin_addr.s_addr, connfd );
+ 77         pthread_t tid;
+ 78         if ( pthread_create( &tid, NULL, handler_conn, ( void* )&connfd ) != 0 ) {
+ 79             printf( "create thread failed\n" );
+ 80             continue;
+ 81         }
+ 82     }
+ 83     return 0;
+ 84 }
+ 
+ 客户端代码go语言实现:
+ package main
+
+import(
+	"net"
+	"time"
+	"fmt"
+)
+
+func main() {
+	conn, err := net.Dial("tcp", "106.12.158.133:8888")
+	if err != nil {
+		fmt.Println( err )
+		return
+	}
+	ch := time.After( time.Minute )
+	<-ch
+	conn.Close()
+}
+
+最后用tcpdump 追踪消息的传递
+14:26:31.697765 IP 171.223.203.178.2127 > instance-u1n6fu49.8888: Flags [S], seq 2878592859, win 8192, options [mss 1452,nop,wscale 8,nop,no0
+14:26:31.697840 IP instance-u1n6fu49.8888 > 171.223.203.178.2127: Flags [S.], seq 493226860, ack 2878592860, win 64240, options [mss 1460,no0
+14:26:31.739489 IP 171.223.203.178.2127 > instance-u1n6fu49.8888: Flags [.], ack 1, win 260, length 0
+14:26:46.755057 IP 171.223.203.178.2127 > instance-u1n6fu49.8888: Flags [.], seq 0:1, ack 1, win 260, length 1
+14:26:46.755101 IP instance-u1n6fu49.8888 > 171.223.203.178.2127: Flags [.], ack 1, win 502, options [nop,nop,sack 1 {0:1}], length 0
+14:27:01.805315 IP 171.223.203.178.2127 > instance-u1n6fu49.8888: Flags [.], seq 0:1, ack 1, win 260, length 1
+14:27:01.805360 IP instance-u1n6fu49.8888 > 171.223.203.178.2127: Flags [.], ack 1, win 502, options [nop,nop,sack 1 {0:1}], length 0
+14:27:16.846963 IP 171.223.203.178.2127 > instance-u1n6fu49.8888: Flags [.], seq 0:1, ack 1, win 260, length 1
+14:27:16.847018 IP instance-u1n6fu49.8888 > 171.223.203.178.2127: Flags [.], ack 1, win 502, options [nop,nop,sack 1 {0:1}], length 0
+14:27:31.749136 IP 171.223.203.178.2127 > instance-u1n6fu49.8888: Flags [F.], seq 1, ack 1, win 260, length 0
+14:27:31.749686 IP instance-u1n6fu49.8888 > 171.223.203.178.2127: Flags [P.], seq 1:257, ack 2, win 502, length 256
+14:27:31.749699 IP instance-u1n6fu49.8888 > 171.223.203.178.2127: Flags [F.], seq 257, ack 2, win 502, length 0
+14:27:31.798370 IP 171.223.203.178.2127 > instance-u1n6fu49.8888: Flags [R.], seq 2, ack 257, win 0, length 0
+120-122行 三次握手的消息 不再赘述
+
+主要看断开连接
+129-132 服务器边 收到了fin read套接字返回0 回复ack 进入close_wait状态
+然后服务器发搜了条消息 即130行 p 代表尽快的发送 然后服务器关闭连接 服务器代码第22行 然后主动发了一个fin包给客户端进入last_ack状态等待最后一个自己发的fin包的ack到来
+
+客户端发了消息fin包进入fin_wait1状态 然后到客户端对fin包的ack进入time_wait2状态 然后收到了服务器端的fin包发送一个ack 进入time_wait状态 为什么要有一个time_wait也叫2msl状态是因为要保证最后一个ack到达对端
+

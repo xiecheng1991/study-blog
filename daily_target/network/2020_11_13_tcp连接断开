@@ -138,3 +138,18 @@ func main() {
 
 客户端发了消息fin包进入fin_wait1状态 然后到客户端对fin包的ack进入time_wait2状态 然后收到了服务器端的fin包发送一个ack 进入time_wait状态 为什么要有一个time_wait也叫2msl状态是因为要保证最后一个ack到达对端
 
+tcp断开连接时还会有一种状态即没有数据发送时如服务器程序中22行代码注释掉过后 tcpdump如下
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+14:50:42.704412 IP 171.223.203.178.2128 > instance-u1n6fu49.8888: Flags [S], seq 738650292, win 8192, options [mss 1452,nop,wscale 8,nop,nop0
+14:50:42.704511 IP instance-u1n6fu49.8888 > 171.223.203.178.2128: Flags [S.], seq 4186645643, ack 738650293, win 64240, options [mss 1460,no0
+14:50:42.746179 IP 171.223.203.178.2128 > instance-u1n6fu49.8888: Flags [.], ack 1, win 260, length 0
+14:50:57.758335 IP 171.223.203.178.2128 > instance-u1n6fu49.8888: Flags [.], seq 0:1, ack 1, win 260, length 1
+14:50:57.758388 IP instance-u1n6fu49.8888 > 171.223.203.178.2128: Flags [.], ack 1, win 502, options [nop,nop,sack 1 {0:1}], length 0
+14:51:12.803628 IP 171.223.203.178.2128 > instance-u1n6fu49.8888: Flags [.], seq 0:1, ack 1, win 260, length 1
+14:51:12.803693 IP instance-u1n6fu49.8888 > 171.223.203.178.2128: Flags [.], ack 1, win 502, options [nop,nop,sack 1 {0:1}], length 0
+14:51:27.845348 IP 171.223.203.178.2128 > instance-u1n6fu49.8888: Flags [.], seq 0:1, ack 1, win 260, length 1
+14:51:27.845408 IP instance-u1n6fu49.8888 > 171.223.203.178.2128: Flags [.], ack 1, win 502, options [nop,nop,sack 1 {0:1}], length 0
+14:51:42.760683 IP 171.223.203.178.2128 > instance-u1n6fu49.8888: Flags [F.], seq 1, ack 1, win 260, length 0
+14:51:42.761313 IP instance-u1n6fu49.8888 > 171.223.203.178.2128: Flags [F.], seq 1, ack 2, win 502, length 0
+14:51:42.802913 IP 171.223.203.178.2128 > instance-u1n6fu49.8888: Flags [.], ack 2, win 260, length 0
+竟然少了一次握手 所以可以得出 当没有数据发送时 服务器立即关闭连接会把fin包和客户端的fin包的ack封装到一个报文当中一起发送过去 因此就看到少了一次挥手

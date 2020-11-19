@@ -27,3 +27,8 @@ closing        <------>        closing
     |                              | 
 time_wait                       time_wait
  
+18.10 tcp选项
+
+18.11 tcp端口号
+22 23 Telnet和ssh 服务端口 
+tcp        0      0 0.0.0.0:ssh             0.0.0.0:*               LISTEN  会一直处于listen状态  这个端口只会接受syn报文 然后为新连接创建一个进程 这个新的进程才接收数据包

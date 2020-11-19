@@ -5,3 +5,25 @@
 18.8 同时打开
 两个应用程序同时彼此执行主动打开的情况是可能的 尽管发生的可能性极小, (即双方都必须发送一个SYN且这些SYN必须传递给对方)这就称为同时打开(其实就是发送SYN和接受SYN都是同一个端口程序)一定要同时
 TCP是特意设计了为处理同时打开,对于同时打开的连接 仅创建一条连接(而不是两条连接)
+A                                 B      
+closed          <------>       closed
+    |    相互发送syn 后进入fin_wait_1 |
+SYN_SEND     <------>        SYN_SEND
+    |      收到对方的syn后 再发送syn和ack         |
+SYN_RECV        <------>        SYNC_RECV
+    |                              | 
+                收到对方的ack后
+ESTABLISHED                      ESTABLISHED 
+
+18.9 同时关闭
+双方都同时都执行主动关闭,两端均从established变为fin_wait_1 接收到对方的fin报文过后状态都有fin_wait_1变为closing，并发送最后的ack,状态变化为time_wait
+A                                 B
+                  
+established    <------>       established
+    |    相互发送find后进入fin_wait_1 |
+fin_wait_1     <------>        fin_wait_1
+    |       对对方的fin进行ack确认   |
+closing        <------>        closing
+    |                              | 
+time_wait                       time_wait
+ 

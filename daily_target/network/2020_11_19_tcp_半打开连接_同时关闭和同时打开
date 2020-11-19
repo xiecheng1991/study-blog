@@ -21,7 +21,7 @@ ESTABLISHED                      ESTABLISHED
 A                                 B
                   
 established    <------>       established
-    |    相互发送find后进入fin_wait_1 |
+    |    相互发送fin后进入fin_wait_1 |
 fin_wait_1     <------>        fin_wait_1
     |       对对方的fin进行ack确认   |
 closing        <------>        closing

@@ -1,0 +1,19 @@
+listen函数主要做两件事
+1. 当socket创建一个套接字时，它被假设为一个主动套接字,也就是说它是一个将调用connect发起连接的套接字。listen函数把一个未连接的套接字转换成被动套接字
+  根据tcp状态图调用listen导致套接字从closed状态转换成了listen状态
+2. 本函数的第二个参数(backlog)规定了内核应该为相应套接字排队的最大连接个数(tcp层面也维护了一个连接队列,这个队列是tcp连接三次握手完成但是还未被应用程序处理)
+
+linux下使用netstat -n -l  -l显示监听套接字 -n显示ip地址而不是需要dns解析的名字
+服务器代码listen到8888端口
+    if ( listen( listen_fd, MAX_LEN ) ) {
+ 61         printf( "listen error:%d\n", errno );
+ 62         return -1;
+ 63  }
+
+root@instance-u1n6fu49:~# netstat -n -l
+tcp        0      0 0.0.0.0:8888            0.0.0.0:*               LISTEN 
+
+backlog参数的理解
+内核为任何一个监听套接字维护两个队列
+1. 
+

@@ -1,0 +1,78 @@
+unix网络编程 accept函数
+accept函数主要是从tcp已连接队列头部返回一个已经完成三次握手的连接,如果连接队列为空,那么进程被投入睡眠
+
+#include<sys/socket.h>
+int accept( int sockfd, struct sockaddr* cliaddr, socklen_t* addrlen )
+
+参数详解
+cliaddr和addrlen用来返回已连接的对端进程的协议地址 addrlen是内核放到cliaddr内的确切字节数,如果我们对客户端的协议地址不感兴趣，那么可以把这两个参数设置为NULL
+sockfd 是监听套接字
+
+accept 接收成功
+  那么其返回值是由内核自动生成的一个全新描述符,代表与所返回的客户端的tcp连接
+接收失败会返回-1 并且回设置errno值
+
+今天发现一个很惊讶的事情 如果应用程序退出前没有关闭套接字(连接) 那么tcp会主动发送一个rst报文给对端,然后对端释放掉对应的连接
+如果对方还在read 套接字的话 则会read出错 见如下示例
+
+服务器代码:
+  1 #include"../unp.h"
+  2 #include<time.h>
+  3 
+  4 int
+  5 main( int argc, char* argv[] ) {
+  6     int listenfd, connfd;
+  7     socklen_t len;
+  8     struct sockaddr_in servaddr, cliaddr;
+  9     char buff[1024] = { '0' };
+ 10     time_t ticks;
+ 11 
+ 12     listenfd = Socket( AF_INET, SOL_SOCKET, 0 );
+ 13 
+ 14 //  bzero( &servaddr, sizeof( servaddr ) );
+ 15 
+ 16     servaddr.sin_family = AF_INET;
+ 17     servaddr.sin_addr.s_addr = htonl( INADDR_ANY );
+ 18     servaddr.sin_port = htons( 13 );
+ 19     Bind( listenfd, ( SA* )&servaddr, sizeof( servaddr ) );
+ 20                            
+ 21     Listen( listenfd, LISTENQ );
+ 22 
+ 23     for( ; ; ) {           
+ 24         len = sizeof( cliaddr );        
+ 25         connfd = accept( listenfd, ( SA* )&cliaddr, &len );
+ 26         printf( "connect success:%d\n", connfd ); 
+ 27         char* dst = inet_ntop( AF_INET, &cliaddr.sin_addr, buff, sizeof( buff ) );
+ 28         if ( dst == NULL ) {
+ 29             printf( "inet_ntop err:%d\n", errno );
+ 30             continue;
+ 31         } else {
+ 32             printf( "cliaddr:%s\n", dst );
+ 33         }
+ 34         printf( "connection from %s, port:%d\n", dst, ntohs( cliaddr.sin_port ) );
+ 35         ticks = time( NULL );
+ 36         snprintf( buff, sizeof( buff ), "%.24s\r\n", ctime( &ticks ) );
+ 37         printf( "buff:%s\n", buff );
+ 38 //      write( connfd, buff, strlen( buff ) );
+ 39 //      close( connfd );
+ 40         int n = read( connfd, buff, sizeof( buff ) ); //这里一直在等待从套接字返回,但是对方没有执行close(fd) 反而是直接杀进程那么这部就会收到一个rst报文
+ 41         if( n < 0 ) {
+ 42             printf( "read error:%d\n", errno );
+ 43         } else {
+ 44             printf( "read %d bytes from client\n", n );
+ 45             if ( n == 0 ) {
+ 46                 printf( "client close\n" );
+ 47             }
+ 48         }
+ 49     }
+ 50 
+ 51     return 0;
+ 52 }
+
+
+connect success:4
+cliaddr:171.223.203.178
+connection from 171.223.203.178, port:2079
+buff:Fri Nov 20 17:24:35 2020
+
+read error:104 //errno 104:connetction reset by peer

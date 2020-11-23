@@ -88,7 +88,26 @@ select和select
   2) 0表示没有描述符准备好，比如超时了都还没有描述符准备好那么三个描述符集合都置为0
   3) 一个正值说明了已经准备好读和写，如果同一个描述符已准备好读和写，那么在返回值中会对其计数两次 读和写中对应的位置为1
   
+  核心知识点 需要把套接字添加到对应事件的fd_sets当中,如下示例代码
   
+   //设置为nonblock用select驱动    
+ 17     if ( fcntl( listen_fd, F_SETFL, O_NONBLOCK ) ) {
+ 18         printf( "fcntl error:%d\t%s\n", errno, strerror( errno ) );         
+ 19         return 0;
+ 20     }
+ 21 
+ 22     max_fd = listen_fd + 1;
+ 23     socket_set( listen_fd ); //添加到对应的fd_sets当中
+ void 
+ 19 socket_set( int fd ) {
+ 20     FD_SET( fd, &read_sets );
+ 21     FD_SET( fd, &write_sets );
+ 22     FD_SET( fd, &execpt_sets );
+ 23 }
+ 
+ 
+
+ 
              
 
 

@@ -1,0 +1,45 @@
+非阻塞i/o和多路复用
+1. 非阻塞i/o
+  非阻塞i/o使我们可以发出open,read,write这样的i/o操作，并使这些操作永远不会阻塞，如果这种操作不能完成，则立即调用出错返回,表示如果该操作继续执行将阻塞
+  对于一个给定的描述符,有两种将其指定为非阻塞i/o的方法
+  1) 如果调用open获得描述符， 则可指定o_nonblock标志
+  2）对于一个已经打开的描述符，则可调用fcntl,由该函数打开o_nonblock标志
+  对于一个非阻塞的描述符如果无数据可读,则read返回-1,errno设置为EAGAIN
+  
+1 #include<unistd.h>                                                                              
+  2 #include<stdio.h>
+  3 #include<stdlib.h>                                                                              
+  4 #include<fcntl.h>                                                                               
+  5 #include<errno.h>
+  6 #include<string.h>                                                                              
+  7 
+  8 int
+  9 main( int argc, char* argv ) {                                                                  
+ 10     char buf[1024] = {'0'};                                                                     
+ 11     
+ 12     //测试例子
+ 13     //stdin本来是阻塞的读取 设置为非阻塞并且在没有数据读的时候返回出错,因为在套接字中返回字符'0',
+ 14     //就不能判断到底是套接字断开连接还是没有数据可读                                            
+ 15     //所以返回-1 并且将errno 设置为EAGAIN或者EWOULDBLOCK                                        
+ 16     int fd = 0;                                                                                 
+ 17     fcntl( fd, F_SETFL, O_NONBLOCK ); //set nonblock                                            
+ 18     while( 1 ) {                                                                                
+ 19         sleep( 1 );                                                                             
+ 20         memset( buf, '0', sizeof( buf ) );                                                      
+ 21         int ntowrite = read( fd, buf, sizeof( buf ) );                                          
+ 22         if ( ntowrite < 0 ) {                                                                   
+ 23             printf( "read error:%d\t%s\n", errno, strerror( errno ) );                          
+ 24             continue;                                                                           
+ 25         }                                                                                       
+ 26         printf( "read :%s\n", buf );                                                            
+ 27     }                                                                                           
+ 28     return 0;                                                                                   
+ 29 }
+ 执行结果
+ root@instance-u1n6fu49:~/linux/nonblock_io# ./main 
+read error:11   Resource temporarily unavailable
+read error:11   Resource temporarily unavailable
+read error:11   Resource temporarily unavailable
+read error:11   Resource temporarily unavailable
+read error:11   Resource temporarily unavailable
+^C

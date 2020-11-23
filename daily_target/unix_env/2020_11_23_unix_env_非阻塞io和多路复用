@@ -43,3 +43,10 @@ read error:11   Resource temporarily unavailable
 read error:11   Resource temporarily unavailable
 read error:11   Resource temporarily unavailable
 ^C
+
+i/o多路复用
+为什么需要多路复用 在一个进程或者线程中同时从多个描述符读取数据时，我们不能在任意一个描述符上进行阻塞读,否则可能会因为被阻塞在其中一个描述符上而导致另外的描述符即使有数据
+也无法处理
+
+
+

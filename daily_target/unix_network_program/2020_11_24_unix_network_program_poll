@@ -1,0 +1,7 @@
+poll函数
+#include<poll.h>
+
+int poll( struct pollfd* fdarray, unsigned long nfds, int timeout );
+如果返回正数 表示已有就绪的描述符数量
+如果超时 则返回0
+如果出错则返回 -1

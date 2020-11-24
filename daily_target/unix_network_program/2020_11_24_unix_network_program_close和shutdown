@@ -1,0 +1,3 @@
+close和shutdown的区别
+1. close 把描述符的引用-1 仅在该计数变为0时才关闭套接字。使用shutdown则直接触发tcp正常连接终止 发送fin
+2. close终止读和写两个方向的数据传送

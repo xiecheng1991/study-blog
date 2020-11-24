@@ -1,3 +1,10 @@
 close和shutdown的区别
 1. close 把描述符的引用-1 仅在该计数变为0时才关闭套接字。使用shutdown则直接触发tcp正常连接终止 发送fin
 2. close终止读和写两个方向的数据传送
+
+int shutdown (int sockfd, int howto);
+若成功返回0 若出错返回-1
+howto参数详解
+SHUT_RD 关闭连接的读这一端
+SHUT_WR 关闭连接的写这一端
+SHUT_RDWR 关闭连接的读和写

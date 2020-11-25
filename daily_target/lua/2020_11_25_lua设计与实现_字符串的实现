@@ -6,4 +6,52 @@ lua字符串理念 在c中每个存放lua字符串的变量，实际上存放的
 例如 
 a = "1"  创建一个字符"1"
 a = a.."2" 创建了一个字符串"12"
-此时a指向"12" 剩下的字符"1"将会在合适的实际 被垃圾回收掉
+此时a指向"12" 剩下的字符"1"如果没有其他地方引用到的话，将会被垃圾回收掉
+
+所以在lua虚拟机中必然要有一个全局的地方存放当前系统中的所有字符串,lua虚拟机使用一个散列桶来实现管理字符串
+
+--lua字符串需要重点掌握的内容:
+在Lua虚拟机中存在一个全局的数据区，用来存放当前系统中的所有字符串
+
+同一个字符串数据，在 虚拟机中只可能有一份副本，一个字符串一旦创建，将是不
+可变更的
+变量存放的仅是字符串的引用，而不是其实际内容
+
+lua字符串的实现
+ (lobject. h) 
+196 /* 
+197 ** String headers for string table 
+198 */ 
+199 typedef union TString { 
+200 L_Umaxalign dummy; /* ensures maximum alignment for strings */ 
+201 struct { 
+202 CommonHeader; 
+203 lu _byte reserved; 
+204 unsigned int hash; 
+205 size t len; 
+206 } tsv; 
+207 } TString;
+
+CommonHeader ：这在前面讲解通用数据结构时已经做过解释
+reserved ：这个变革’用于标示这个字符串是否是Lua虚拟机中的保留字符串 如果这个值
+为1，那么将不会在GC 阶段被回收，而是一直保留在系统中 只有Lu 语言中的关键字
+才会是保留字符串
+hash ：该字符串的散列值 前面提到过， Lua的字符串比较并不会像一般的做法那样进行逐位对比，而是仅比较字符串的散列值(主要是为了判等和查找)
+len ：字符串长度
+
+lua会把系统中的所有字符串存在一个全局的地方，这个全局变量就是global_state strt成员 这是一个散列数组，专门用于存放字符串
+strt成员的类型为
+(lstate.h) 
+38 typedef struct stringtable { 
+39 GCObject **hash;  这个就是用来存放全局的字符串的地方
+40 lu int32 nuse; /* number of elements */ 
+41 int size; 
+42 } stringtable;
+
+新创建一个字符串TString时，首先根据散列算法算出散列值，这就是 strt 数组的索引值如果这里已经有元素，则使用链表串接起来（使用链表解决hash冲突）
+
+当数据量非常大时，导致某一列的值过多，查找退化，这个时候就重新分配桶的数量,降低每个桶上分配到的数量，这个过程在  luaS_resize中
+
+有两个地方会用到luaS_resize
+1. lgc.c的checkSizes 会进行检查，如果此时桶的数量太大 即hash表太大，比如是实际存放的字符串数量的4倍，那么将会进行散列桶的数量减少为原来的一半(缩容)
+2. lstring.c当中的newlstr函数 如果此时字符串的数量大于桶的数量，且桶数组的数量小于max_int/2,那么就进行翻倍的扩容

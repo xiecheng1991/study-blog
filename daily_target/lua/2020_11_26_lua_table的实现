@@ -1,0 +1,117 @@
+lua table表示lua中的一切数据,是lua区分其他语言的一个特色
+lua table分为数组和散列表部分 数组从下标1开始,散列表可以存放任何其他不能存放在数组中的部分数据,唯一要求就是键值不能为nil
+
+//表的数据类型定义
+(lobject.h) 
+338 typedef struct Table { 
+339 CommonHeader; 
+340 lu_byte lags; /* 1< p means tagmethod(p) is not present */ 一个byte类型的数据，用于表示这个表中提供了那些元方法 提供一个元方法就将该元方法对应的flag bit置为1
+341 lu_byte lsizenode; !* log2 of size of node ’ array */ 这是以2为底的散列表大小的对数值。所以散列表部分的大小一定是2的幂，如果这个散列表要扩展的话也是在每次在原大小基础上乘以2的形式扩展
+342 struct Table *metatable; //该表所拥有的元表 
+343 TValue *array; /* array part */ 指向数组部分的指针
+344 Node *node; 指向散列表起始位置的指针
+345 Node *lastfree; /* any free position is before this position */ 指向该散列表最后位置的指针 
+346 GCObject *gelis t; gc相关的链表
+347 int sizearray; /* size of array array */ 数组部分的大小
+348 } Table;
+
+table当中node的定义 就是一个散列桶 类似字符串在global_stat strt成员中的存放一样
+(lobject .h) 
+319 /* 
+320 ** Tables 
+321 */ 
+322 
+323 typedef union TKey { 
+324 struct { 
+325 TValuefields; 
+326 struct Node *next; /* for chaining */ 
+327 } nk; 
+328 TValue tvk; 
+329 } TKey; 
+330 
+331 
+332 typedef struct Node { 
+333 TValue i _val; 
+334 TKey i_key; 
+335 } Node;
+
+表算法
+1. 查找:
+如果键是一个0到数组大小之间的正整数 那么就会在 数组里面进行查找(所以用猜测用ipairs遍历其实就是去数组里面遍历)
+所以一个大于数组大小值得正整数 那么就不会落在数组中反而落到了node成员这个hash表中
+否则就会在表的hash桶数据结构中进行查找
+计算出该key的散列值,根据此散列值访问node数组得到散列桶所在位置,遍历该桶下所有的链表元素,直到找到该key为止(感觉就很像字符串的存储 global_stat strt成员一样)
+table.lua
+local t = {}
+  2 t[1] = 0                   
+  3 t[100] = 0                 
+  4 
+  5 for k, v in ipairs( t ) do 
+  6     print(k ,v)
+  7 end
+  
+  root@instance-u1n6fu49:~/lua/table# lua table.lua
+1       0
+所以100 就没有进入数组 只有1才进入了数组
+  
+2.新增元素:
+新增元素比较复杂 涉及重新分配表中数组和散列表的流程
+2.1) 散列表中的新增
+  首先计算数据的key 所在桶数组位置,这个位置称为mainposition.相同的mainposition的数据又是以链表形式组织
+  如果找到了该位置 就根据该key查找到的Tvalue指针，由外部的使用者来进行实际的替换操作
+  如果没有找到的话 最终都会调用内部的newkey函数分配一个新的key来返回
+  
+  (ltable.c) 
+392 /* 
+393 ** inserts a new key into a hash table; first, check whether key ’s main 
+394 ** position is ree. If not, check whether colliding node is in its main 
+395 ** position or not: if it is not, move colliding node to an empty place and 
+396 ** put new key in its main position; otherwise (colliding node is in its main 
+397 position), new key goes to an empty position. 
+398 */ 
+399 static TValue *newkey (lua_State *L, Table *t, const TValue *key) { 
+400 Node *mp ＝『『1ainposition(t, key); 
+401 if (!ttisnil(gval(mp)) 11 mp== dummy 「＼ Ode) { 
+402 Node *othern; 
+403 Node *n = getfreepos(t); /*get a free place */ 
+404 if (n == NULL) { /* cannot find a free place? */ 
+405 rehash(L, t, key); /* grow table */ 
+406 return luaH_set(L, t, key); I* re insert key into grown table */ 
+407 } 
+408 lua_assert(n != dummynode); 
+409 othern ＝『『1ainposition(t, key2tval(mp)); 
+410 if ( othern ! = mp) { /* is colliding node out of its main position? *I 
+411 /* yes; move colliding node into 干：ree position */ 
+412 while (gnext(othern) ! = mp) othern = gnext(othern); I* find previous */ 
+413 gnext(othern) = n; /* redo the chain with n' in place of mp ’＊／
+414 *n = *mp; !* copy colliding node into free pos. （「np- next also goes) */ 
+415 gnext(mp NULL; /* now mp is free */ 
+416 setnilvafoe(gval(mp));
+  417 } 
+418 else { /* colliding node is in its own main position */ 
+419 /* new node will go into ree position */ 
+420 gnext(n) = gnext(mp); /* chain new position */ 
+421 xt （叩） = n; 
+422 mp = n; 
+423 } 
+424 } 
+425 gkey(mp)->value = key->value; gkey （「「1p)->tt = key->tt; 
+426 luaC_barriert(L, t, key); 
+427 lua_assert(ttisnil(gval(mp))); 
+428 return gval(mp); 
+429 }
+
+这个函数的流程 首先根据key来查找其对应所在的桶的mainposition,如果在返回结果中
+1. 若该node值为nil那么直接将key赋值并返回Node的Tvalue指针就可以了
+2. 否则说明该mainposition上已经有其他数据了,需要重新分配空间给这个新的key,然后将这个新的node串联到对应的桶上
+(插入这部分得好好再研究一下)
+
+迭代
+
+取长度操作
+可以使用#符号对表达式进行取长度操作，如果该表没有提供__len元方法 那么该操作只针对该表的序列部分进行。序列指的是表的一个子集{1......n},其中n是一个正整数,并且里面每个键对应的数据都不为Nil
+
+这部分还得好好再理解一遍
+
+  
+

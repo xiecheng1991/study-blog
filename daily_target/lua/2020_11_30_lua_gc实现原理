@@ -30,3 +30,16 @@ lu_byte marked: 标记字段用来存储前面提到的集中颜色
  
  所以一创建出来就是白色，那么久有一个问题 在清扫阶段如果是白色就被清除 那么新创建的对象也会被垃圾回收掉
  所以引入两个白色 一个是当前白色 一个是非当前白色，只有在垃圾回收时不是当前白色才会被垃圾回收
+  所以marked字段有两位有两位来表示当前白色
+  
+  70 /*
+ 71 ** Layout for bit use in 'marked' field. First three bits are
+ 72 ** used for object "age" in generational mode. Last bit is used
+ 73 ** by tests.
+ 74 */
+ 75 #define WHITE0BIT   3  /* object is white (type 0) */
+ 76 #define WHITE1BIT   4  /* object is white (type 1) */
+ 77 #define BLACKBIT    5  /* object is black */
+ 78 #define FINALIZEDBIT    6  /* object has been marked for finalization */
+ 79 
+ 80 #define TESTBIT     7

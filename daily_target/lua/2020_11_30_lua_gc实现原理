@@ -1,0 +1,32 @@
+gc算法采用三色增量标记清除算法
+白色: 当前对象为待访问状态，表示对象还没有被GC标记过，这也是任何一个对象创建后的初始状态
+  如果一个对象在结束gc扫描过程后 仍然是白色，则说明该对象没有被系统中的任何一个对象引用，可以回收其空间了
+灰色: 当前对象为待扫描状态，表示对象已被gc访问过,但是该对象引用的其他对象还没被访问到
+黑色: 当前对象为已扫描状态，表示对象已被gc访问过，并且该对象引用的其他对象也被访问过了
+
+所有的gc对象 gcobject 
+#define CommonHeader struct GCObject *next; lu_byte tt; lu_byte marked
+tyedef struct GCObject {
+  CommonHeader;
+} GCObject;
+
+struct GCObject* next: GCObject的指针，这个指针将所有gc对象都连接在一起形成链表
+lu_byte tt: 数据类型
+lu_byte marked: 标记字段用来存储前面提到的集中颜色
+
+ /*
+ 256 ** create a new collectable object (with given type and size) and link
+ 257 ** it to 'allgc' list.
+ 258 */
+ 259 GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
+ 260   global_State *g = G(L);
+ 261   GCObject *o = cast(GCObject *, luaM_newobject(L, novariant(tt), sz));
+ 262   o->marked = luaC_white(g);
+ 263   o->tt = tt;
+ 264   o->next = g->allgc;
+ 265   g->allgc = o;
+ 266   return o;
+ 267 }
+ 
+ 所以一创建出来就是白色，那么久有一个问题 在清扫阶段如果是白色就被清除 那么新创建的对象也会被垃圾回收掉
+ 所以引入两个白色 一个是当前白色 一个是非当前白色，只有在垃圾回收时不是当前白色才会被垃圾回收

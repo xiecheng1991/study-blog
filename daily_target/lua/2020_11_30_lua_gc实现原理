@@ -43,3 +43,18 @@ lu_byte marked: 标记字段用来存储前面提到的集中颜色
  78 #define FINALIZEDBIT    6  /* object has been marked for finalization */
  79 
  80 #define TESTBIT     7
+
+系统中当前白色 见 lua_State虚拟机中 global_state成员类型的currentwhite otherwhite宏则表明不是当前gc要回收的白色
+
+切换白色需要使用changewhite宏， 要得到gc对象当前的白色状态则使用luaC_white宏
+
+#define unsigne char lu_byte
+
+global_state结构体中，有以下几个与GC相关的数据成员
+lu_byte currentwhite: 存放当前gc的白色
+lu_byte gcstate: 存放gc的状态， 分别有以下几种:gcspause(暂停阶段) gcspropagate(传播阶段，用于遍历灰色节点检查对象的引用情况) gcssweepstring字符串回收阶段, gcssweep回收阶段 gcssweep终止阶段
+int sweepstrgc: 字符串回收阶段
+gcobject *gray 存放灰色节点的链表
+gcobject *grayagain: 存放需要一次性扫描处理的灰色链表，这个链表上的数据处理 不能被打断 必须一次性处理完
+gcobject *weak 存放弱表的链表
+gcobject *tmudata: 所有带gc方法的udata存放在一个链表中，这个成员指向这个链表的最后一个元素

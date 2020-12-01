@@ -61,3 +61,44 @@ gcobject *tmudata: 所有带gc方法的udata存放在一个链表中，这个成
 
 弱引用表 week table
   就是用来告知lua语言一个引用不应该阻止对一个对象的回收的机制， 如果一个对象的所有引用都是弱引用，那么垃圾收集器将会回收这个对象并删除这些弱引用
+  只要有一个键或值被回收了那么对应的整个键值对都会被从表中删除 
+  
+  如下示例代码
+   local a = {}
+ 42 local mt = {}
+ 43 setmetatable( a, mt )
+ 44 mt.__mode = "v"
+ 45 
+ 46 local t = {}
+ 47 a[1] = 1 --array part
+ 48 a[2] = t
+ 49 
+ 50 t = nil
+ 51 
+ 52 print( "before collectgarbage" )
+ 53 for k, v in pairs( a ) do
+ 54     print( k, v )
+ 55 end
+ 56 
+ 57 print("after collectgarbage")
+ 58 collectgarbage( "collect" )
+ 59 
+ 60 for k, v in pairs( a ) do
+ 61     print( k, v )
+ 62 end
+ 
+ --最后执行结果如下 说明被回收掉了
+ before collectgarbage
+1       1
+2       table: 0x56441a45b690
+after collectgarbage
+1       1
+
+把元表和mode元方法注释掉 就成为强引用表执行结果如下
+before collectgarbage
+1       1
+2       table: 0x561c79e9d610
+after collectgarbage
+1       1
+2       table: 0x561c79e9d610
+  

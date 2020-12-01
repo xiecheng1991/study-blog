@@ -1,0 +1,53 @@
+全局环境 lua中没有全局变量 只是所有的值都放到了_G表中
+非全局环境
+  自由名称 是指没有关联到显示声明上的名称，即他不出现在对应局部变量的范围内
+  local z = 10
+  x = y + z 
+  x y被称为自由名称 z不是
+lua语言编译器将代码段的所有自由名称 x 转换成 _ENV.x
+所以编译器编译过后代码就是这样的
+local z = 10 
+_ENV. x = _ENV.y + z
+
+又因为 ， Lua语言把所有的代码段都当作匿名函数
+
+local _ENV = some value
+
+return function(...)
+  local z = 10
+  _ENV.x = _ENV.y + z    此时的_ENV形成了一个upvalue
+end
+
+lua中关于全局变量的处理方式
+编译器在编译所有代码段前，在外层创建局部变量_ENV
+编译器将所有自由名称 var 变换为＿ENV.var
+函数load或者函数loadfile使用全局环境初始化代码段的第一个上值,即lua语言内部维护的一个普通的表
+
+由于_ENV只是一个普通变量，因此可以对其赋值像访问其他变量一样访问他 赋值语句 _ENV = nil会使得后续代码不能直接访问局部变量这可以用来控制代码使用哪种变量
+如下示例代码
+1 a = 10
+  2                            
+  3 _ENV = nil                 
+  4 
+  5 print( a )
+执行结果  
+root@instance-u1n6fu49:~/lua/env# lua main.lua 
+lua: main.lua:5: attempt to index a nil value (upvalue '_ENV')
+stack traceback:
+        main.lua:5: in main chunk
+        [C]: in ?
+通常， 和＿ENV 指向的是同一个表 
+
+_ENV是一个局部变量,所有全局部变量的访问都是_ENV
+_G则是一个在任何情况下都没有任何特殊状态的全局变量
+按照定义 _ENV永远指向的是当前的环境
+_G通常指向的是全局环境
+_ENV的主要作用就是用来改变代码段的使用环境，一旦改变了环境，所有的全局访问都将使用新表
+
+
+_ENV和load
+函数load通常把被加载代码段的上值_ENV初始化为全局环境， 函数load还有一个可选参数第四个参数来让我们为_ENV指定一个不同的初始值(函数loadfile也有一个类似的参数)
+
+所以lua重中之重的理解 所有代码块在加载时都会封装成一个函数返回 并且_ENV被设置为该函数的第一个upvalue值
+
+所以可以通过修改返回函数的upvalue值 来修改函数

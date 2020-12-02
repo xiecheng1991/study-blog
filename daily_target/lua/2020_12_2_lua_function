@@ -1,0 +1,30 @@
+在定义局部递归函数时 有一点特别容易出错
+local fact = function(n)
+  if n == 0 then return 1
+  else return fact(n-1) --这行要出错 当lua语言编译函数体中的fact(n-1)调用时,局部的fact尚未定义。因此这个表达式会尝试调用全局的fact而非局部的fact
+  end
+end
+
+可以通过如下方式解决问题
+local fact
+fact = function(n)
+  if n == 0 then return 1
+  else return fact(n-1)
+  end
+end
+
+----------------------------------------------------------------------------------------------
+函数前向声明
+local f
+local function g()
+  f()
+end
+
+--在这里就不能使用local关键字 否则 Lua语言会创建一个全新的局部变量f,从而使得先前声明的f变成未定义状态
+function f()
+  g()
+end
+
+-------------------------------------------------------------------------------------------------------
+package.loaded表实际上是引用的register注册表中的_LOADED表
+package.preload表实际上也是对register注册表中的_PRELOAD的引用

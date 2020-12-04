@@ -1,0 +1,35 @@
+Lua C模块
+  就是通过辅助函数luaL_newlib接收一个由C函数及其对应名称组成的数组,并将这些函数注册到一个新表中
+  并且通常一个C模块中只有一个用于打开库的公共(外部)函数 在C语言中被声明为static
+  
+  例子 注册一个包含l_dir函数的 dir库
+  首先定义这个函数
+  static int l_dir( lua_State* ) {
+    
+  }
+  
+  然后声明一个数组
+  static const struct luaL_Reg mylib[] = {
+    { "dir", l_dir },
+    { NULL, NULL}           //最后一个数组元素必须永远是{NULL, NULL} 并以此标识数组的结尾
+  };
+  
+  最后
+  int luaopen_mylib( lua_State* L ) {
+    luaL_newlib( L, mylib );
+    return 1;                                               //返回以mylib填充其元素的c模块
+  }
+  
+  如果lua解释器支持动态链接库的话 最简单的方法就是使用动态链接库 最后在lua代码中
+  local mylib = require "mylib"
+  执行过程为找对应名称(mylib)的动态库的动态库 然后查找一个叫luaopen_mylib的函数，如果是require "skynet.core"这种形式的话
+  则是去找skynet_core动态库和skynet动态库 并且找一个叫luaopen_skynet_core的函数
+  
+  如果解释器不支持动态链接库,就必须同新库一起重新编译lua语言。除了重新编译以外还需要以某种方式告诉独立解释器，他应该在打开一个新状态时打开这个库。
+  一个简单的做法是把luaopen_mylib添加到luaL_openlibs打开的标准库列表中，这个列表位于linit.c中
+  
+  今晚动手尝试重新编译看看
+  
+  
+  
+  

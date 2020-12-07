@@ -1,0 +1,27 @@
+1. 注册表
+  主要是用来保存所有C模块可以访问 但是lua模块访问不到的一张全局表
+  通常情况下我们使用注册表来存储多个模块间共享的数据
+  注册表位于伪索引LUA_REGISTRYINDEX中，伪索引就像一个栈中的索引，但他们所关联的值不在栈中
+  又因为是所有的C库共享的是同一个注册表，所以选择键的时候要注意便面冲突
+  在lua注册表中不能使用数值类型的键，因为lua语言将其用作引用系统的保留字
+  另外一种比较好的办法就是在lua注册表中使用代码中静态变量的地址,这就需要使用到lua_pushlightuserdata
+2. upvalue
+  注册表提供了全局变量,而上值则实现了一种类似C语言静态变量(只在特定的函数中可见的机制) 并且在每次创建新的C函数时，都可以将任意的上值与这个函数相关联
+  例子
+  static int counter( lua_State* L );
+  
+  int newcounter( Lua_State* L ) {
+      lua_pushinteger( L, 0 );
+      lua_pushcclosure( L, &counter, 1 ); //lua_pushcclose会创建一个新的闭包留在栈中，第二个参数是要设置为闭包的函数，第三个参数是upvalue值得数量，在创建一个新的闭包前，我们必须将上值的初始值压栈
+      return 1;
+  }
+  
+  static int count( lua_State* L ) {
+      int val = lua_tointeger( L, lua_upvalueindex(1) ); //lua_upvalueindex生成闭包的第一个上值的索引
+      lua_pushinteger( L, ++val );
+      lua_copy( L, -1, lua_upvalueindex(1) ); //更新上值
+      return 1; //返回新值
+  }
+  
+  
+  

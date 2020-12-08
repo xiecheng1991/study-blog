@@ -73,7 +73,7 @@
       luaL_newmetatable( L, "LuaBook.array" ); //创建元表
       lua_pushvalue( L, -1 ); //复制这个元表 复制这个元表的原因在于__index要指向他自身
       lua_setfield( L, -2, "__index" ); //__index域指向"LuaBook.array"这个元表也就是他本身
-      luaL_setfuncs( L, arraylib_m, 0 ); //用arraylib_m中的函数去填充LuaBook.array这个表
+      luaL_setfuncs( L, arraylib_m, 0 ); //用arraylib_m中的函数去填充LuaBook.array这个表 是用arraylib_m 填充栈顶的表
       luaL_newlib( L, arraylib ); //通过arrayLib函数填充一个新的库
       return 1;最后返回这个表
    }

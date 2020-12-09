@@ -1,0 +1,124 @@
+今天主要是根据云风的blog再次理解lua gc
+主要理解如下几点
+1. gcstate的含义 以及每个state做什么事
+
+gc状态宏
+#define GCSpropagate    0                 //标记阶段 直到灰色链表为空 才会进入下一阶段
+#define GCSenteratomic  1
+#define GCSatomic   2
+#define GCSswpallgc 3 
+#define GCSswpfinobj    4
+#define GCSswptobefnz   5
+ #define GCSswpend   6
+ #define GCScallfin  7
+ #define GCSpause    8          //启动阶段
+ 
+ 
+ 理解markobject()
+  #define iswhite(x)      testbits((x)->marked, WHITEBITS) //就是通过testbits判断垃圾收集对象的marked字段 是否是WHITEBITS 如果是就说明是白色 否则不是白色(注意思索两个白色)
+  
+  //真正进行标记的函数
+  static void reallymarkobject (global_State *g, GCObject *o) {
+ 293   switch (o->tt) {
+ 294     case LUA_VSHRSTR:
+ 295     case LUA_VLNGSTR: {
+ 296     ¦ set2black(o);  /* nothing to visit */
+ 297     ¦ break;
+ 298     }
+ 299     case LUA_VUPVAL: {
+ 300     ¦ UpVal *uv = gco2upv(o);
+ 301     ¦ if (upisopen(uv))
+ 302     ¦   set2gray(uv);  /* open upvalues are kept gray */
+ 303     ¦ else
+ 304     ¦   set2black(o);  /* closed upvalues are visited here */
+ 305     ¦ markvalue(g, uv->v);  /* mark its content */
+ 306     ¦ break;
+ 307     }
+ 308     case LUA_VUSERDATA: {
+         //进行标记的时候如果是userdata
+         //如果u->nuvalue==0则说明不是userdata则标记他的元表 然后把它设置为black,并退出
+ 309     ¦ Udata *u = gco2u(o);
+ 310     ¦ if (u->nuvalue == 0) {  /* no user values? */
+ 311     ¦   markobjectN(g, u->metatable);  /* mark its metatable */
+ 312     ¦   set2black(o);  /* nothing else to mark */
+ 313     ¦   break;
+ 314     ¦ }
+ 315     ¦ /* else... */
+ 316     }  /* FALLTHROUGH */
+ 317     case LUA_VLCL: case LUA_VCCL: case LUA_VTABLE:
+ 318     case LUA_VTHREAD: case LUA_VPROTO: {     
+ 319     ¦ linkobjgclist(o, g->gray);  /* to be visited later */ //如果是把这个节点添加到g->gray列表中表明这个节点访问过了 但是和他相关的结点还没有访问过
+ 320     ¦ break;
+ 321     }
+ 322     default: lua_assert(0); break;
+  
+  #define markobject(g,t) { if (iswhite(t)) reallymarkobject(g, obj2gco(t)); }
+ 
+ 
+1472 static void entersweep (lua_State *L) {
+1473   global_State *g = G(L);
+1474   g->gcstate = GCSswpallgc;          //进入sweepallgc 阶段
+1475   lua_assert(g->sweepgc == NULL);
+1476   g->sweepgc = sweeptolive(L, &g->allgc); //s
+1477 } 
+ 
+ 1570 static lu_mem singlestep (lua_State *L) {
+1571   global_State *g = G(L);
+1572   switch (g->gcstate) {
+1573     case GCSpause: {
+          //启动阶段 主要是通过restartcollection(g)函数把 g->gray = g->grayagain = NULL; g->weak = g->allweak = g->ephemeron = NULL; 这几个链表清空
+          //markobject(g, g->mainthread); 标记mainthread
+          //markvalue(g, &g->l_registry); 标记注册表
+          //markmt(g); 标记元表 因为所有的元表是挂在g->metatable中的 然后在table和userdata数据中有一个 metatable成员用来保存该对象的元表
+1574     ¦ restartcollection(g);
+1575     ¦ g->gcstate = GCSpropagate;
+1576     ¦ return 1;
+1577     }
+1578     case GCSpropagate: {
+           //标记阶段
+           //当检测到尚有对象待标记时，迭代标记(反复调用ppropagatemark) 这个过程是可以被打断的
+1579     ¦ if (g->gray == NULL) {  /* no more gray objects? */
+1580     ¦   g->gcstate = GCSenteratomic;  /* finish propagate phase */ 最后进入一个不可被打断的标记流程
+1581     ¦   return 0;
+1582     ¦ }
+1583     ¦ else
+1584     ¦   return propagatemark(g);  /* traverse one gray object */
+1585     }
+1586     case GCSenteratomic: {
+          //进入一个集中标记流程这个流程不可被打断
+1587     ¦ lu_mem work = atomic(L);  /* work is what was traversed by 'atomic' */
+1588     ¦ entersweep(L);           //atomic执行完毕以后进入清扫阶段
+1589     ¦ g->GCestimate = gettotalbytes(g);  /* first estimate */;
+1590     ¦ return work;
+1591     }
+1592     case GCSswpallgc: {  /* sweep "regular" objects */
+1593     ¦ return sweepstep(L, g, GCSswpfinobj, &g->finobj); //这里一直执行清理g->allgc直到所有的死亡对象被释放掉内存和从allgc列表上移除,然后进入GCSSwfinobj
+1594     }
+1595     case GCSswpfinobj: {  /* sweep objects with finalizers */
+1596     ¦ return sweepstep(L, g, GCSswptobefnz, &g->tobefnz); //同样的执行清理g->finobj直到所有的死亡对象被释放掉内存和从finobj列上移除 然后进入gcsswptobefnz
+1597     }
+1598     case GCSswptobefnz: {  /* sweep objects to be finalized */
+1599     ¦ return sweepstep(L, g, GCSswpend, NULL);//这里就是去调用g->tobefnz列表上所有对象的__gc元方法释放内存 g->tobefnz列表中的对象主要是在GCSenteratomic状态中atomic函数中挑选出来挂到该列表上的
+1600     }
+1601     case GCSswpend: {  /* finish sweeps */
+1602     ¦ checkSizes(L, g);
+1603     ¦ g->gcstate = GCScallfin; //最后完成一轮垃圾清理
+1604     ¦ return 0;
+1605     }
+1606     case GCScallfin: {  /* call remaining finalizers */
+1607     ¦ if (g->tobefnz && !g->gcemergency) {
+1608     ¦   int n = runafewfinalizers(L, GCFINMAX);
+1609     ¦   return n * GCFINALIZECOST;
+1610     ¦ }
+1611     ¦ else {  /* emergency mode or no more finalizers */
+1612     ¦   g->gcstate = GCSpause;  /* finish collection */
+1613     ¦   return 0;
+1614     ¦ }
+1615     }
+1616     default: lua_assert(0); return 0;
+1617   }
+1618 }
+
+所以总的流程可以总结为 准备状态->标记->清除(死亡对象)->清理(调用g->tobenz列表上所有元素的__gc元方法)
+
+今天这一边理清了大概流程 清除了大致的东西 有一些小细节还得等到后面慢慢补  然后今天暂时先放下 进入协程内容

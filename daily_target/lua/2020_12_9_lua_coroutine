@@ -1,0 +1,154 @@
+lua 协程 
+1. 协程的创建 
+调用的是 coroutine c模块的函数
+coroutine.create( 函数 )
+从底层来看最后调用到lcorolib.c当中的luaB_cocreate 这个时候创建一个新的lua_State* NL一个新的协程(主协程一般代表虚拟机的状态)
+
+lcorolib.c
+static int luaB_cocreate (lua_State *L) {
+ 93   lua_State *NL;
+ 94   luaL_checktype(L, 1, LUA_TFUNCTION); //检查传入的参数是否是一个函数
+ 95   NL = lua_newthread(L);
+ 96   lua_pushvalue(L, 1);  /* move function to top */
+ 97   lua_xmove(L, NL, 1);  /* move function from L to NL */ 从L协程中 栈顶开始拷贝n个值到NL协程中去 这里是把协程入口函数拷贝到 NL新的协程上
+ 98   return 1;
+ 99 }
+ 
+ lstate.c
+ 
+static void preinit_thread (lua_State *L, global_State *g) {
+289   G(L) = g;
+290   L->stack = NULL;
+291   L->ci = NULL;
+292   L->nci = 0;
+293   L->stacksize = 0;
+294   L->twups = L;  /* thread has no upvalues */
+295   L->errorJmp = NULL;
+296   L->hook = NULL;
+297   L->hookmask = 0;
+298   L->basehookcount = 0;
+299   L->allowhook = 1;
+300   resethookcount(L);
+301   L->openupval = NULL;
+302   L->status = LUA_OK;
+303   L->errfunc = 0;
+304   L->oldpc = 0;
+305 } 
+ 
+ LUA_API lua_State *lua_newthread (lua_State *L) {
+322   global_State *g;
+323   lua_State *L1;                                              
+324   lua_lock(L);
+325   g = G(L);
+326   luaC_checkGC(L);
+327   /* create new thread */
+328   L1 = &cast(LX *, luaM_newobject(L, LUA_TTHREAD, sizeof(LX)))->l;    //真正的创建一个新的协程
+329   L1->marked = luaC_white(g); //标记为白色 因为lua 协程也是一个可以被垃圾回收的对象
+330   L1->tt = LUA_VTHREAD;
+331   /* link it on list 'allgc' */
+332   L1->next = g->allgc;
+333   g->allgc = obj2gco(L1); //挂载到全局g->allgc链表上随时准备垃圾回收
+334   /* anchor it on L stack */
+335   setthvalue2s(L, L->top, L1);
+336   api_incr_top(L);
+337   preinit_thread(L1, g);  //对L1进行初始化 并且让L1新协程的全局状态指向 主协程的全局状态  所以得出所有的协程共享同一个全局状态
+338   L1->nCcalls = getCcalls(L);
+339   L1->hookmask = L->hookmask;
+340   L1->basehookcount = L->basehookcount;
+341   L1->hook = L->hook;
+342   resethookcount(L1);
+343   /* initialize L1 extra space */
+344   memcpy(lua_getextraspace(L1), lua_getextraspace(g->mainthread),
+345     ¦   ¦LUA_EXTRASPACE);
+346   luai_userstatethread(L, L1);
+347   stack_init(L1, L);  /* init stack */      //初始化函数调用栈
+348   lua_unlock(L);
+349   return L1;
+350 }
+ 
+ 2. coroutine.resume( co ) 唤醒一个co
+ 实际上就是调用lcorolib.c文件中的luaB_coresume
+ 
+ static int auxresume (lua_State *L, lua_State *co, int narg) {
+ 33   int status, nres;
+ 34   if (!lua_checkstack(co, narg)) {
+ 35     lua_pushliteral(L, "too many arguments to resume");
+ 36     return -1;  /* error flag */
+ 37   }
+ 38   lua_xmove(L, co, narg); //这里主要做的就是把resume的参数从当前coroutine移动到目标coroutine
+ 39   status = lua_resume(co, L, narg, &nres); //然后执行唤醒
+ 40   if (status == LUA_OK || status == LUA_YIELD) {
+ 41     if (!lua_checkstack(L, nres + 1)) {
+ 42     ¦ lua_pop(co, nres);  /* remove results anyway */
+ 43     ¦ lua_pushliteral(L, "too many results to resume");
+ 44     ¦ return -1;  /* error flag */
+ 45     }
+ 46     lua_xmove(co, L, nres);  /* move yielded values */
+ 47     return nres;
+ 48   }
+ 49   else {
+ 50     lua_xmove(co, L, 1);  /* move error message */
+ 51     return -1;  /* error flag */
+ 52   }
+ 53 }
+ 
+ static int luaB_coresume (lua_State *L) {
+ 57   lua_State *co = getco(L);
+ 58   int r;
+ 59   r = auxresume(L, co, lua_gettop(L) - 1); //重点在于 auxresume函数的调用这里面会把对应数量r的值放到调用coroutine.resume的协程当中去,并把结果返回
+ 60   if (r < 0) {
+       //这里说明resume出错 返回一个false和错误信息
+ 61     lua_pushboolean(L, 0);
+ 62     lua_insert(L, -2);
+ 63     return 2;  /* return false + error message */
+ 64   }
+ 65   else {
+        //resume成功 返回一个true 并且把auxresume的返回值 返回给当前协程   所以可以通过resume和yield在两个不同的协程之间进行数据的传送 主要还是依赖于lua_xmove函数
+ 66     lua_pushboolean(L, 1);
+ 67     lua_insert(L, -(r + 1));
+ 68     return r + 1;  /* return true + 'resume' returns */
+ 69   }
+ 70 }
+ 
+ 
+ 661 LUA_API int lua_resume (lua_State *L, lua_State *from, int nargs,
+662     ¦   ¦   ¦   ¦   ¦   ¦   ¦   ¦   ¦ int *nresults) {
+663   int status;
+664   lua_lock(L);
+665   if (L->status == LUA_OK) {  /* may be starting a coroutine */
+666     if (L->ci != &L->base_ci)  /* not in base level? */
+667     ¦ return resume_error(L, "cannot resume non-suspended coroutine", nargs);
+668     else if (L->top - (L->ci->func + 1) == nargs)  /* no function? */
+669     ¦ return resume_error(L, "cannot resume dead coroutine", nargs);
+670   }
+671   else if (L->status != LUA_YIELD)  /* ended with errors? */
+672     return resume_error(L, "cannot resume dead coroutine", nargs);
+673   if (from == NULL)
+674     L->nCcalls = CSTACKTHREAD;
+675   else  /* correct 'nCcalls' for this thread */
+676     L->nCcalls = getCcalls(from) - L->nci - CSTACKCF;
+677   if (L->nCcalls <= CSTACKERR)
+678     return resume_error(L, "C stack overflow", nargs);
+679   luai_userstateresume(L, nargs);
+680   api_checknelems(L, (L->status == LUA_OK) ? nargs + 1 : nargs);
+681   status = luaD_rawrunprotected(L, resume, &nargs);
+682    /* continue running after recoverable errors */
+683   while (errorstatus(status) && recover(L, status)) {
+684     /* unroll continuation */
+685     status = luaD_rawrunprotected(L, unroll, &status);
+686   }
+687   if (likely(!errorstatus(status)))
+688     lua_assert(status == L->status);  /* normal end or yield */
+689   else {  /* unrecoverable error */
+690     L->status = cast_byte(status);  /* mark thread as 'dead' */
+691     luaD_seterrorobj(L, status, L->top);  /* push error message */
+692     L->ci->top = L->top;
+693   }
+694   *nresults = (status == LUA_YIELD) ? L->ci->u2.nyield
+695     ¦   ¦   ¦   ¦   ¦   ¦   ¦   ¦   : cast_int(L->top - (L->ci->func + 1));
+696   lua_unlock(L);
+697   return status;
+698 }
+ 
+ 
+ 

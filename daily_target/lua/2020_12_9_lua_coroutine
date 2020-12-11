@@ -73,6 +73,11 @@ static void preinit_thread (lua_State *L, global_State *g) {
  当co有错误发生时
  第一个值返回false 后面的为错误信息
  
+ coroutine.resume的参数
+ 1. 如果是第一次唤醒协程 那么resume的参数会作为被唤醒协程入口函数的参数
+ 2. 如果唤醒一个yield状态的协程 resume的参数会作为yield的返回值
+  所以再回头看看 skynet.call和消息处理
+ 
  static int auxresume (lua_State *L, lua_State *co, int narg) {
  33   int status, nres;
  34   if (!lua_checkstack(co, narg)) {

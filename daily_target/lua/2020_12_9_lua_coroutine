@@ -156,8 +156,11 @@ static void preinit_thread (lua_State *L, global_State *g) {
  
  协程挂起
  coroutine.yield() 使当前协程挂起 并且可以传递参数给resume调用者协程
- 所以coroutine.yield() 让resume调用者 返回两个返回值
- 看例子
+ 所以传递给yield的参数都会转化为resume函数的返回值
+ 并且yield会一直保存协程的栈信息 直到被唤醒
  
+ lua 协程resume和yield中相互作用最重要的一个东西就是 ci->extra 当前调用函数的堆栈信息 
+ 执行yield时 保存堆栈信息到ci->stack
+ 执行resume时 如果协程状态为yield即被挂起的协程 则通过extra恢复
  
  

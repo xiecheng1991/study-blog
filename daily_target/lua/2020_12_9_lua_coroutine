@@ -67,7 +67,11 @@ static void preinit_thread (lua_State *L, global_State *g) {
 350 }
  
  2. coroutine.resume( co ) 唤醒一个co
- 实际上就是调用lcorolib.c文件中的luaB_coresume
+ 实际上就是调用lcorolib.c文件中的luaB_coresume  而且协程唤醒的时候协程当前调用的函数为base_ci数组中的第一个函数即入口函数 即创建协程时的入口函数
+ 当co无错误发生时
+ coroutine.resume返回多个值 第一个值 true 后面的可变返回值为 coroutine.yield(...)的参数或者协程入口函数的返回值
+ 当co有错误发生时
+ 第一个值返回false 后面的为错误信息
  
  static int auxresume (lua_State *L, lua_State *co, int narg) {
  33   int status, nres;
@@ -149,6 +153,11 @@ static void preinit_thread (lua_State *L, global_State *g) {
 696   lua_unlock(L);
 697   return status;
 698 }
+ 
+ 协程挂起
+ coroutine.yield() 使当前协程挂起 并且可以传递参数给resume调用者协程
+ 所以coroutine.yield() 让resume调用者 返回两个返回值
+ 看例子
  
  
  

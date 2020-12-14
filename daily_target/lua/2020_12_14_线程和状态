@@ -14,3 +14,10 @@ int lua_resume ( lua_State * L, lua_State *from, int narg);
 参数L 表示要唤醒的协程
 参数from 表示执行resume函数的协程
 narg 表示执行resume函数时传入的参数
+
+唤醒有两种状况
+1. 刚刚创建时的唤醒
+  
+2. 挂起的唤醒
+  如果是唤醒的挂起中协程 则resume返回LUA_YIELD，并且此时线程栈中的可见部分只包含传递给yield的值，调用lua_gettop会返回这些值得个数。如果需要将这些值移动给调用resume的协程
+  则需要使用lua_xmove

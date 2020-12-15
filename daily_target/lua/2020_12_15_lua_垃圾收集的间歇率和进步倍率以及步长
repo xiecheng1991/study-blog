@@ -1,0 +1,153 @@
+主要分析lua为我们提供的垃圾回收相关操作和api
+collectgarbage()的参数
+
+垃圾收集间歇率 setpause
+  垃圾收集器间歇率控制着收集器在开始新的循环之前需要等待多久，增大这个值会减少收集器的积极性，当这个值比100小收集器在开启新的循环之前不会有等待。设置这个值为200就会让收集器等到
+  总内存使用量达到之前的两倍才开始新的循环
+  
+垃圾收集步进倍率 setstepmul 从下面的代码分析可以得出和手册上一样的结论
+垃圾收集器步进倍率控制着收集器运作速度相对于内存分配速度的倍率。 增大这个值不仅会让收集器更加积极，还会增加每个增量步骤的长度。 
+不要把这个值设得小于 100 ， 那样的话收集器就工作的太慢了以至于永远都干不完一个循环。 默认值是 200 ，这表示收集器以内存分配的“两倍”速工作。
+
+
+单步运行步长 步长大小由arg决定 (从代码分析 参数越大 收集越积极)
+手册上描述就是设置了参数那么多的步长 就会收集那么多的内存
+incstep代码来看 这个值越大进步越多
+  step 单步运行垃圾收集器。步长大小由arg控制 collectgarbage("step", arg) 传入0时 收集器执行一步不可分割的一步，这一步在代码lapi.c这种体现出
+  1101 LUA_API int lua_gc (lua_State *L, int what, ...) {
+1102   va_list argp;
+1103   int res = 0;
+1104   global_State *g;
+1105   lua_lock(L);
+1106   g = G(L);
+1107   va_start(argp, what);
+1108   switch (what) {
+1109     case LUA_GCSTOP: {
+1110     | g->gcrunning = 0;
+1111     | break;
+1112     }
+1113     case LUA_GCRESTART: {
+1114     | luaE_setdebt(g, 0);
+1115     | g->gcrunning = 1;
+1116     | break;
+1117     }
+1118     case LUA_GCCOLLECT: {
+1119     | luaC_fullgc(L, 0);
+1120     | break;
+1121     }
+1122     case LUA_GCCOUNT: {
+1123     | /* GC values are expressed in Kbytes: #bytes/2^10 */
+1124     | res = cast_int(gettotalbytes(g) >> 10);
+1125     | break;
+1126     }
+1127     case LUA_GCCOUNTB: {
+1128     | res = cast_int(gettotalbytes(g) & 0x3ff);
+1129     | break;
+1130     }
+1131     case LUA_GCSTEP: {
+1132     | int data = va_arg(argp, int);
+1133     | l_mem debt = 1;  /* =1 to signal that it did an actual step */
+1134     | lu_byte oldrunning = g->gcrunning;
+1135     | g->gcrunning = 1;  /* allow GC to run */
+1136     | if (data == 0) {                 //把debt设置为0并立即执行一步
+1137     |   luaE_setdebt(g, 0);  /* do a basic step */
+1138     |   luaC_step(L);
+1139     | }
+1140     | else {  /* add 'data' to total debt */
+1141     |   debt = cast(l_mem, data) * 1024 + g->GCdebt;
+1142     |   luaE_setdebt(g, debt);
+1143     |   luaC_checkGC(L);
+1144     | }
+1145     | g->gcrunning = oldrunning;  /* restore previous state */
+1146     | if (debt > 0 && g->gcstate == GCSpause)  /* end of cycle? */
+1147     |   res = 1;  /* signal it */
+1148     | break;
+1149     }
+1150     case LUA_GCSETPAUSE: {
+1151     | int data = va_arg(argp, int);
+1152     | res = getgcparam(g->gcpause);
+1153     | setgcparam(g->gcpause, data);
+1154     | break;
+1155     }
+1156     case LUA_GCSETSTEPMUL: {
+1157     | int data = va_arg(argp, int);
+1158     | res = getgcparam(g->gcstepmul);
+1159     | setgcparam(g->gcstepmul, data);
+1160     | break;
+1161     }
+1162     case LUA_GCISRUNNING: {
+1163     | res = g->gcrunning;
+1164     | break;
+1165     }
+1166     case LUA_GCGEN: {
+1167     | int minormul = va_arg(argp, int);
+1168     | int majormul = va_arg(argp, int);
+1169     | res = isdecGCmodegen(g) ? LUA_GCGEN : LUA_GCINC;
+1170     | if (minormul != 0)
+1171     |   g->genminormul = minormul;
+1172     | if (majormul != 0)
+1173     |   setgcparam(g->genmajormul, majormul);
+1174     | luaC_changemode(L, KGC_GEN);
+1175     | break;
+1176     }
+1177     case LUA_GCINC: {
+1178     | int pause = va_arg(argp, int);
+1179     | int stepmul = va_arg(argp, int);
+1180     | int stepsize = va_arg(argp, int);
+1181     | res = isdecGCmodegen(g) ? LUA_GCGEN : LUA_GCINC;
+1182     | if (pause != 0)
+1183     |   setgcparam(g->gcpause, pause);
+1184     | if (stepmul != 0)
+1185     |   setgcparam(g->gcstepmul, stepmul);
+1186     | if (stepsize != 0)
+1187     |   g->gcstepsize = stepsize;
+1188     | luaC_changemode(L, KGC_INC);
+1189     | break;
+1190     }
+1191     default: res = -1;  /* invalid option */
+1192   }
+1193   va_end(argp);
+1194   lua_unlock(L);
+1195   return res;
+1196 }
+
+lgc.c
+
+ /*
+1658 ** performs a basic GC step if collector is running
+1659 */
+1660 void luaC_step (lua_State *L) {
+1661   global_State *g = G(L);
+1662   lua_assert(!g->gcemergency);
+1663   if (g->gcrunning) {  /* running? */
+1664     if(isdecGCmodegen(g))
+1665     | genstep(L, g);
+1666     else
+1667     | incstep(L, g);
+1668   }
+1669 }
+1670 
+
+针对上面参数 最重要是理解incstep函数
+static void incstep (lua_State *L, global_State *g) {
+1640   int stepmul = (getgcparam(g->gcstepmul) | 1);  /* avoid division by 0 */
+1641   l_mem debt = (g->GCdebt / WORK2MEM) * stepmul;
+1642   l_mem stepsize = (g->gcstepsize <= log2maxs(l_mem))
+1643     |   |   |   |? ((cast(l_mem, 1) << g->gcstepsize) / WORK2MEM) * stepmul
+1644     |   |   |   |: MAX_LMEM;  /* overflow; keep maximum value */
+1645   do {  /* repeat until pause or enough "credit" (negative debt) */
+1646     lu_mem work = singlestep(L);  /* perform one single step */
+1647     debt -= work;
+1648   } while (debt > -stepsize && g->gcstate != GCSpause);
+1649   if (g->gcstate == GCSpause)
+1650     setpause(g);  /* pause until next cycle */
+1651   else {
+1652     debt = (debt / stepmul) * WORK2MEM;  /* convert 'work units' to bytes */
+1653     luaE_setdebt(g, debt);
+1654   }
+1655 }
+
+stepmul 主要就是步长倍率
+l_mem debt = (g->GCdebt / WORK2MEM) * stepmul; 通过step步骤设置的步长大小 * stepmul
+从do
+while( debt > -stepsize && g->gcstate != GCSpause ) 这里可以看出stepmul越大 执行的步数越多 直到这这个debt 小于或者等于了 stepsizze 或作者执行完了一次完整的垃圾收集

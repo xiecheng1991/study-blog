@@ -1,0 +1,45 @@
+数据库的更新方面
+update和delete以及alter table
+流程还是如下
+连接器(处理客户端连接)->分析器(分析语法)->优化器->执行器
+
+到了执行器以后 更新了数据 会先把数据写到内存当中 然后将操作记录到redo log里面此时redo log处于prepare状态。然后告知执行器执行完成随时可以提交事务
+然后执行器生成这个操作的bin log 并把bin log写入磁盘
+最后执行器调用引擎的提交事务接口，引擎把刚刚写入的redo log改成提交(commit)状态 更新完成
+以上操作将redo log拆分了两个步骤prepare和commit 两阶段提交
+主要还是为了避免数据的不一致问题 因为redo log和bin log 处理不同的逻辑
+假如说先写完了 redo log然后数据库突然crash了 这还没来得及写bin log
+  那么就会出现 bin log没有这份数据的问题
+如果先写了bin log然后突然crash 然后没有写redo log 这就会导致bin log有操作记录 但是数据库中没有数据
+所以综上所述 redo log需要两段提交 保证两个log都写好了
+
+在数据更新过程中有两个重要的日志模块
+1 redo log 
+  主要是用于数据库突然崩溃重启后的操作恢复（因为存储空间有限大概是4个G分四个区域每个区域一个G）所以只能保存最近的一些操作
+
+bin log
+  就是比较详细的日志记录 可以恢复任意时刻的数据
+  
+mysqldump 也可以用于数据备份
+mysqldump -uroot -p -h 数据库 [表名] > 脚本名 比如test.sql
+
+mysqldump原理
+  主要是连接到数据库 把创建表的语句和插入语句都写到 导出脚本名中
+在mysql当中就可以使用source test.sql进行数据库或者表的恢复
+
+mysqlbinlog恢复
+开启bin log日志 每次更新表产生日志
+然后 
+mysqlbinlog mysql-bin.000003 | mysql -uroot test (test是数据库名)
+
+//常用选项
+--start-position=953                   起始pos点
+          --stop-position=1437                   结束pos点
+          --start-datetime="2013-11-29 13:18:54" 起始时间点
+          --stop-datetime="2013-11-29 13:21:53"  结束时间点
+          --database=zyyshop                     指定只恢复zyyshop数据库(一台主机上往往有多个数据库，只限本地log日志)
+//不常用选项
+ -u --user=name              Connect to the remote server as username.连接到远程主机的用户名
+          -p --password[=name]        Password to connect to remote server.连接到远程主机的密码
+          -h --host=name              Get the binlog from server.从远程主机上获取binlog日志
+          --read-from-remote-server   Read binary logs from a MySQL server.从某个MySQL服务器上读取binlog日志

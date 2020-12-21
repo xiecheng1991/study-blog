@@ -85,7 +85,8 @@ gc状态宏
 1584     ¦   return propagatemark(g);  /* traverse one gray object */
 1585     }
 1586     case GCSenteratomic: {
-          //进入一个集中标记流程这个流程不可被打断
+          //再进行一次完整的不可被打断的扫描标记阶段
+          //直到今天才明白为什么atomic 要再执行一遍标记流程 那是因为前面的标记时分步执行的 有可能中间又新增了一些垃圾回收对象 或者虚拟机中的对象关系又发生了改变
 1587     ¦ lu_mem work = atomic(L);  /* work is what was traversed by 'atomic' */
 1588     ¦ entersweep(L);           //atomic执行完毕以后进入清扫阶段
 1589     ¦ g->GCestimate = gettotalbytes(g);  /* first estimate */;

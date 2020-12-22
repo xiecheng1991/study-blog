@@ -1,0 +1,48 @@
+数据库的事务
+  事务就是要保证一组数据库操作,要么全部成功 要么全部失败,并且事务支持是在引擎(InnoDB)层面实现的
+  事务的特性特点 即原子性 一致性 隔离性 持久性
+  
+  SQL标准的事务隔离级别包括 
+  读未提交
+    一个事务还未提交时 它做的变更就能被别的事务看到
+  读已提交
+    一个事务已提交时 它做的变更才能被别的事务看到
+  可重复读
+    一个事务执行过程中看到的数据，总是跟这个事务在启动时看到的数据是一致的。当然在可重复读隔离级别下，未提交变更对其他事务也是不可见的。 也可以简单理解为可重复读只能看到他第一次看到的数据
+    意思就是在A事务开启时执行了一次select T表中的数据能看到一些结果 在B事务修改并提交了T表中的数据 此时A再次执行select则看不到B中修改的内容 如下例子
+    事务A
+mysql> begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select * from T;
++----+------+
+| ID | c    |
++----+------+
+|  2 |    2 |
++----+------+
+1 row in set (0.00 sec)
+
+mysql> select * from T;
++----+------+
+| ID | c    |
++----+------+
+|  2 |    2 |
++----+------+
+1 row in set (0.00 sec)
+
+mysql> commit;
+
+事务B
+mysql> begin;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> update T set c = c+1 where ID=2;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> commit;
+
+  串行化
+  对于同一行记录 写会加写锁 读会加读锁 当出现读写锁冲突的时候，后访问的事务必须等前一个事务执行完成，才能继续执行
+  
+    

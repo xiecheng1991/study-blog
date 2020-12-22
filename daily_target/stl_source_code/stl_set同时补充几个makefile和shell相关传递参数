@@ -1,0 +1,32 @@
+
+首先Makefile 传递参数
+make PARAM=x 会在Makefile脚本中参数一个PARAM变量 值为x 然后可以直接在Makefile中使用${PARAM} 取得X的值
+
+shell传递参数
+./build.sh 10
+在shell脚本中使用 $0 取得第一个参数 $1取得第二个参数以此类推
+
+set 的特性是 set所有元素都会根据元素的键自动排序,set键就是实值 实值就是键 底层就是红黑树
+所以根据以上特性 得出下轮结论
+1. set的迭代器不能改变set的元素值
+  原因在于set的键即是值 值即是键 如果修改了元素值 就导致顺序破坏 所以set的迭代器 底层就是一个const_iterator
+  //如下例子
+  #include<stdio.h>          
+  2 #include<set>              
+  3 
+  4 using namespace std;
+  5 
+  6 int
+  7 main( int argc, char* argv[] ) {
+  8     set<int> si;
+  9     si.clear();
+ 10     for ( int i = 0; i < 10; ++i ) {
+ 11         si.insert( i );
+ 12     }
+ 13 
+ 14     set<int>::iterator it = si.begin();
+ 15     while( it != si.end() ) {
+ 16         *it = *it + 1; //编译报错 set.cpp:16:15: error: assignment of read-only location ‘it.std::_Rb_tree_const_iterator<int>::operator*()’    *it = *it + 1;
+ 17         it++;
+ 18     }
+ 19 }

@@ -1,0 +1,22 @@
+突然思考把一个垃圾收集对象变成灰色添加到灰色链表(g->gray)过后会不会从g->allgc链表上断掉?
+带着这个疑问我又去翻了翻源码
+才发现每个垃圾对象里面都会有两个关键字段
+1. 首先是commonHeader里面的
+	#define CommonHeader struct GCObject *next; lu_byte tt; lu_byte marked
+2. 对应垃圾对象类型里面会有一个gclist (这里只列举了Table类型的代码 其他类型的代码类似)
+	typedef struct Table {
+		CommonHeader;
+		lu_byte flags;
+		lu_byte lsizenode;
+		unsigned int alimit;
+		TValue *array;
+		Node *node;
+		Node *lastfree;
+		struct Table *metattable;
+		GCOBject* gclist;
+	}
+
+gc过程中关键点就在于next和gclist
+假设一个垃圾收集对象 o
+o->next是用在g->allgc链表中 这个值从创建开始就指向了g->allgc不会改变直到从该对象被垃圾收集回收然后从里列表当中移除
+然后我们知道 这个对象o有可能会被添加到 g->gray g->grayagain等链表中 这个过程就是通过o->gclist指向g->gray/g->grayagain 这样就保证了 这个对象o既可以一直在g->allgc链表中又可以在其他链表中来回切换

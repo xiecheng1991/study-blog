@@ -62,7 +62,7 @@ i/o多路复用
 i/o多路转接(i/o多路复用)
   先构造一张我们感兴趣的描述符的列表,然后调用一个函数,直到描述符的一个已准备好进行i/o时,该函数才返回
 
-select和select
+select和poll
   #include<sys/select.h>
   int select( int maxfdpl, fd_set * restrict readfds, fd_set* restrict writefds, fd_set* restrict execptfds,
              struct timeval* restrict tvptr );
@@ -104,6 +104,130 @@ select和select
  21     FD_SET( fd, &write_sets );
  22     FD_SET( fd, &execpt_sets );
  23 }
+ 
+ poll相关知识
+ #include<poll.h>
+ int poll(struct pollfd fds[], nfds_t nfds, int timeout)；
+ struct pollfd {
+int fd; /*文件描述符*/
+short events; /* 等待的需要测试事件 */
+short revents; /* 实际发生了的事件，也就是返回结果 */
+};
+
+nfds 就是fds数组中有效的套接字个数 所以缺陷1 数量有限 和select 区别把select中的三个事件集变成了一个
+
+每次当poll函数返回时 要处理套接字消息 都得遍历fds数组 所以数量有限且效率低下
+当然也可以把nfds数组初始化得很大 这样的话poll以后的处理就会非常低下一个一个的区遍历
+
+如下例子
+for (i = 0; i< IN_FILES; i++)
+    {
+     if (fds[i].revents)
+       {
+         memset(buf, 0, MAX_BUFFER_SIZE);
+         real_read = read(fds[i].fd, buf, MAX_BUFFER_SIZE);
+         if (real_read < 0)
+        {
+         if (errno != EAGAIN)
+           {
+             return 1;
+           }
+        }
+         else if (!real_read)
+        {
+         close(fds[i].fd);
+         fds[i].events = 0;
+        }
+         else
+        {
+         if (i == 0)
+           {
+             if ((buf[0] == 'q') || (buf[0] == 'Q'))
+            {
+             return 1;
+            }
+           }
+         else
+           {
+             buf[real_read] = '\0';
+             printf("%s", buf);
+           }
+        }
+       }
+       
+epoll 相关知识
+#include <sys/epoll.h>
+
+首先创建一个epoll句柄
+int epfd = epoll_create(POLL_SIZE); //参数可以忽略不计 没啥用
+然后每次打开一个文件描述符 就通过
+//先设置为非阻塞
+然后再添加到epfd句柄
+epoll_ctl(epfd, EPOLL_CTL_ADD, client, &ev)
+
+然后就是水平触发和边缘触发 
+水平触发 就是说只要有某个fd就绪并且没处理 就一直返回
+边缘触发 就是返回一次
+
+
+//例子
+int epfd = epoll_create(POLL_SIZE);
+    struct epoll_event ev;
+    struct epoll_event *events = NULL;
+    nfds = epoll_wait(epfd, events, 20, 500); //epoll_wait 返回就绪的描述符个数 然后通过events参数可以拿到已经就绪的描述符集合 这样就可以避免大量的循环提高了效率
+    {
+        for (n = 0; n < nfds; ++n) {
+            if (events[n].data.fd == listener) {
+                //如果是主socket的事件的话，则表示
+                //有新连接进入了，进行新连接的处理。
+                client = accept(listener, (structsockaddr *)&local, &addrlen);
+                if (client < 0) {
+                    perror("accept");
+                    continue;
+                }
+                setnonblocking(client);        //将新连接置于非阻塞模式
+                ev.events = EPOLLIN | EPOLLET; //并且将新连接也加入EPOLL的监听队列。
+                //注意，这里的参数EPOLLIN|EPOLLET并没有设置对写socket的监听，
+                //如果有写操作的话，这个时候epoll是不会返回事件的，如果要对写操作
+                //也监听的话，应该是EPOLLIN|EPOLLOUT|EPOLLET
+                ev.data.fd = client;
+                if (epoll_ctl(epfd, EPOLL_CTL_ADD, client, &ev) < 0) {
+                    //设置好event之后，将这个新的event通过epoll_ctl加入到epoll的监听队列里面，
+                    //这里用EPOLL_CTL_ADD来加一个新的epoll事件，通过EPOLL_CTL_DEL来减少一个
+                    //epoll事件，通过EPOLL_CTL_MOD来改变一个事件的监听方式。
+                    fprintf(stderr, "epollsetinsertionerror:fd=%d", client);
+                    return -1;
+                }
+            }
+            else if(event[n].events & EPOLLIN)
+            {
+                //如果是已经连接的用户，并且收到数据，
+                //那么进行读入
+                int sockfd_r;
+                if ((sockfd_r = event[n].data.fd) < 0)
+                    continue;
+                read(sockfd_r, buffer, MAXSIZE);
+                //修改sockfd_r上要处理的事件为EPOLLOUT
+                ev.data.fd = sockfd_r;
+                ev.events = EPOLLOUT | EPOLLET;
+                epoll_ctl(epfd, EPOLL_CTL_MOD, sockfd_r, &ev)
+            }
+            else if(event[n].events & EPOLLOUT)
+            {
+                //如果有数据发送
+                int sockfd_w = events[n].data.fd;
+                write(sockfd_w, buffer, sizeof(buffer));
+                //修改sockfd_w上要处理的事件为EPOLLIN
+                ev.data.fd = sockfd_w;
+                ev.events = EPOLLIN | EPOLLET;
+                epoll_ctl(epfd, EPOLL_CTL_MOD, sockfd_w, &ev)
+            }
+            do_use_fd(events[n].data.fd);
+        }
+    }
+
+
+
  
  
 

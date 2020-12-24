@@ -159,7 +159,7 @@ epoll 相关知识
 #include <sys/epoll.h>
 
 首先创建一个epoll句柄
-int epfd = epoll_create(POLL_SIZE); //参数可以忽略不计 没啥用
+int epfd = epoll_create(POLL_SIZE); //从man 手册上看 自动2.6.2以后这个参数就已经被忽略了但是必须要大于0
 然后每次打开一个文件描述符 就通过
 //先设置为非阻塞
 然后再添加到epfd句柄

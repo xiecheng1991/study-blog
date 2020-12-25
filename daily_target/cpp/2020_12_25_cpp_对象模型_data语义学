@@ -139,4 +139,70 @@ class s_A{
  24     return 0;
  25 }
  
+ -----------------------------------------------------data member 布局--------------------------------------
+ class Point3d {
+    public:
+      //.....
+    private:
+      float x;
+      static List<Point3d*> *freeList;
+      float y;
+      static const int chunkSize = 250;
+      float z;
+ }
+ 
+ 因为static成员是在一个全局的global data segement中所以针对Point3d内存布局如下 要符合较晚出现的members在class object中有较高地址
+ 1000  x
+ 1008  y
+ 1010  z
+ 
+ --还有一种情况
+ class Point3d {
+    public:
+      //.....
+    private:
+      float x;
+      int b;(4字节)
+      float y;
+ }
+ 这时 x b y 他们之间是不连续的 因为b只有4个字节 在我的服务器上指针是个字节
+ 所以内存布局
+ 1000 x
+ 1008 b 补4个字节
+ 1010 y
 
+//然后编译器还有可能给类产生一些data member例如 vptr
+
+class Point3d {
+  public:
+    virtual ~Point3d() {
+    }
+  private:
+    float x;
+    float y;
+    float z;
+};
+
+内存布局
+1000 x
+1008 y
+1010 z
+1018 vptr用来指向虚函数表(具体放在头部还是尾部，没有强制要求)
+
+在我的服务器上的测试如下
+ class member_test {
+ 21     public:
+ 22         int a;
+ 23         int b;
+ 24 };
+ 25 
+ 26 int
+ 27 main( int argc, char* argv[] ) {
+ 28 //  cout << sizeof( s_A ) << endl;  
+ 29 //  cout << sizeof( E ) << endl;    
+ 30     member_test t;
+ 31     printf( "%s\n", &t.a < &t.b ? "member a first":"member b first" );
+ 32     return 0;
+ 33 }
+ root@instance-u1n6fu49:~/linux/cpp_language/object_module# ./main 
+member a first 说明先出现的地址较低

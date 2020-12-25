@@ -111,4 +111,32 @@ class s_A{
  22     cout << sizeof( s_A ) << endl;  //大小也为1 因为p的内存不在s_A中
  23     return 0;
  24 }
+ 
+ //根据这个例子总结得出 它会让新的子类产生一个指针指向一个保存虚基类的表 然后才是各个父类的实际值,如果各个父类也虚继承了同一个基类则这些父类不考虑虚继承问题
+  1 #include<iostream>
+  2 
+  3 using namespace std;
+  4 
+  5 class A {};
+  6 class B : public virtual A {};
+  7 class C : public virtual A {};
+  8 //class C : public virtual E {};
+  9 //class D : public B, public C {};//是16的话只能说明是指针(8字节)+A(1字节)+B(1字节)+C(1字节)+补齐(5字节)
+ 10 
+ 11 //class D : public B {}; //8字节 类中已经有数据了 不需要再安插1字节
+ 12 class D : public B, public C{}; //16字节 B(8字节)+C(8字节)
+ 13 
+ 14 class E : public D {}; //E中指针(8字节)指向保存虚基类的表+D(1字节)+B(1字节)+C(1字节)=16
+ 15 
+ 16 class s_A{
+ 17     static int* p;
+ 18 };
+ 19 
+ 20 int
+ 21 main( int argc, char* argv[] ) {
+ 22 //  cout << sizeof( s_A ) << endl;  
+ 23     cout << sizeof( E ) << endl;
+ 24     return 0;
+ 25 }
+ 
 

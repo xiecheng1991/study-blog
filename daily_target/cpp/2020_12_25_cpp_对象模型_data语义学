@@ -1,0 +1,114 @@
+class A {};
+sizeof( A ) = 1?
+那是因为class A被编译器安插进去一个char 这使得A的两个对象 a b 在内存中得以独一无二的内存地址
+如例子:
+  1 #include<iostream>         
+  2                            
+  3 using namespace std;       
+  4 
+  5 class A {};                
+  6 
+  7 int
+  8 main( int argc, char* argv[] ) {
+  9     A a, b;
+ 10     cout << &a << endl;
+ 11     cout << &b << endl;
+ 12     return 0;
+ 13 }
+root@instance-u1n6fu49:~/linux/cpp_language/object_module# ./main 
+0x7fff58aa81f6
+0x7fff58aa81f7
+说明a和b 各占一个字节
+
+虚继承和非虚继承
+
+#include<iostream>         
+  2                            
+  3 using namespace std;       
+  4 
+  5 class A {};                
+  6 //class B : public virtual A {};
+  7 //class C : public virtual A {};
+  8 
+  9 class B : public A {};
+ 10 class C : public A {};
+ 11 
+ 12 int
+ 13 main( int argc, char* argv[] ) {
+ 14     A a, b;
+ 15     /*
+ 16     cout << &a << endl;
+ 17     cout << &b << endl;
+ 18     */
+ 19     cout << sizeof( B ) << endl;    
+ 20     cout << sizeof( C ) << endl;    
+ 21     return 0;
+ 22 }
+ 在非虚继承的情况下 B和C的大小都是1
+ root@instance-u1n6fu49:~/linux/cpp_language/object_module# ./main 
+1
+1
+
+  1 #include<iostream>
+  2 
+  3 using namespace std;
+  4 
+  5 class A {};
+  6 class B : public virtual A {};
+  7 class C : public virtual A {};
+  8 
+  9 
+ 10 //class B : public A {};
+ 11 //class C : public A {};
+ 12 
+ 13 int
+ 14 main( int argc, char* argv[] ) {
+ 15     A a, b;
+ 16     /*
+ 17     cout << &a << endl;
+ 18     cout << &b << endl;
+ 19     */
+ 20     cout << sizeof( B ) << endl;
+ 21     cout << sizeof( C ) << endl;
+ 22     return 0;
+ 23 }
+在虚拟继承的情况下 是因为B C类型的对象中都含有一个指针 虚基类的表格 在我的服务器上指针是8字节所以就看到了如下展示
+root@instance-u1n6fu49:~/linux/cpp_language/object_module# ./main 
+8
+8
+
+结构体和类类型的内存对齐与补齐
+如下例子 sizeof(D)=16
+  1 #include<iostream>
+  2 
+  3 using namespace std;
+  4 
+  5 class A {};
+  6 class B : public virtual A {};
+  7 class C : public virtual A {};
+  8 class D : public B, public C {};//一个指针指向保存父类的表(8字节)+B(1字节)+C(1字节)=16字节
+  9 class D : public B {}; //8字节 类中已经有数据了 不需要再安插1字节
+ 10 int
+ 11 main( int argc, char* argv[] ) {
+ 12     cout << sizeof( D ) << endl;
+ 13     return 0;
+ 14 }   
+
+一个virtual base class subobject只会在derived class 中存在一份实体, 不管它在class 继承体系中出现了多少次,如下解释
+class D : public B, public C {};//D中一个指针指向保存父类的表(8字节)+B(1字节)+C(1字节)+补齐(6字节)=16字节
+
+static 成员数据和非static 成员数据
+static 成员 则被放置在程序中的一个global data segement中不会影响个别的class object的大小
+nonstatic 成员则被放置在class object内存当中
+
+//针对如下类型
+class s_A{
+ 17     static int* p;
+ 18 };
+ 19 
+ 20 int
+ 21 main( int argc, char* argv[] ) {
+ 22     cout << sizeof( s_A ) << endl;  //大小也为1 因为p的内存不在s_A中
+ 23     return 0;
+ 24 }
+

@@ -78,4 +78,13 @@
     然后就是又涉及到dynamic_cast和static_cast的区别
     主要区别就在于类类型的转换上 static_cast不保证其安全性
     dynamic_cast则要根据目标类型和源类型是否有继承关系 来进行类型转换 如果转换失败则返回空!
+    
+    继承加上多态
+    就是提供了加了virtual关键字的接口
+    如果一个类型中加入了一个virtual function
+    1. 那么该类就会导入一个和类相关的virtual table,用来存放它所声明的每一个virtual functions 的地址,这个table的元素数目一般而言是被声明的virtual functions的数目，
+      再加上一个或两个slot(用以支持runtime type identification)
+    2. 在每一个class object中导入一个vptr,提供执行期的链接,使每一个object能够找到相应的virtual table
+    3. 加强构造函数 使它能够为vptr设定初值，让他指向class 所对应的虚函数表 所以每个对象有一个vptr
+    4. 加强析构函数使它能够抹消指向类型相关的virtual table的vptr, 然后析构函数调用次序是反向的 先子类后基类
   

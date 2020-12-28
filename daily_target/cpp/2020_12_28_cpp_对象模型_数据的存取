@@ -1,0 +1,81 @@
+对象内部数据的存取
+1. static data member
+  静态成员变量位于类对象之外，并被视为一个对同一个类型的所有对象可见的global变量，但只在class生命范围之内可见
+  所以它并不会导致任何空间上或者执行时间上的额外负担。
+  每一个静态成员变量只有一个实体。存放在data segment之中
+  origin.chunkSize = 250 等价于 Point3d::chunkSize = 250
+  通过.或者->方式处理静态成员变量时，只是一种便宜行事而已 因为静态成员根本不在任何对象上
+  
+  Point {
+    static chunkSize
+  }
+  
+  Point3d : public Point {
+    
+  }
+  
+  origin.chunkSize = 250 等价于 Point3d::chunkSize = 250 这种方式也不会有额外的负担 还是直接存取就行了
+  并且对一个静态成员变量取地址 会得到一个指向其数据类型的指针,而不是一个指向其class member的指针
+  
+  如果多个class都声明了一个static member freelist,那么当freelist被放进data segment时会导致名称冲突，编译器的处理方式是暗中对每一个static data member编码以获得一个独一无二的名称
+  
+  
+2. 非静态数据成员
+    非静态数据成员则是每一个class object 对象内,所以除非通过class object否则没有办法能够存取到这些成员变量
+    
+    this指针:
+      一般来说成员函数的内部转化 Point3d::translate( const Point3d &pt )会在参数列表中插入一个this指针 Point3d::translate( Point3d const *this, const PPoint3d &pt )
+      所以要对一个nonstatic data member 进行存取操作，编译器需要把class object 的起始地址加上这个data member的偏移量(offset),data member在内存中的顺序是按照其声明顺序排列
+      所以才能很快的计算出data member的偏移量
+      
+      指向data member的指针,其offset值总是被加1
+  
+  
+  选择某些函数成为inline 函数是设计class时的一个重要课题
+  
+  3. 继承与data member
+    普遍情况下 是父类的数据先于子类的数据(virtual base class 虚拟继承的情况例外)
+    
+    class Concrete1 {
+      public:
+      private:
+        int val;
+        char bit1;
+    };
+    
+    class Concrete2 {
+       public:
+       private:
+        char bit2;
+    };
+    
+    class Concrete3 {
+        public:
+        private:
+          char bit3;
+    };
+    
+    Concrete1的大小为 int(4字节)+char(1字节)+(3字节补齐)=8字节
+    Concrete2的大小为 前面 Concrete1(8字节)+char(1字节)+3字节补齐=12字节
+    Concrete3的大小 Concrete1(8字节)+Concrete2(4字节)+char(1字节)+3字节补齐=16字节
+    为何补了9字节 而不是 把3个char 放一起 最后补一个字节 那是因为组合到一起最后补一字节的话 根本无法清除的明白前面这3个字节到底是属于哪个类型的 也就是所谓的偏移量(offset)
+    之所以上面这么做还是为了保证基类的子对象在派生类中的原样性
+    
+    如果说组合到一起活着捆绑到一起的话，就会因为拷贝的时候覆盖掉数据,这下面是错误的示例
+    比如Concrete1 c1 int 4字节+1字节+补齐3字节
+    Concrete2 c2 int4 字节 bit1+bit2+2字节
+     则用c1 拷贝到c2的内存空间是 则会导致 bit2 被bit1的补齐内容覆盖掉 int覆盖int bit1覆盖bit1 c1的补齐内容覆盖c2的bit2,这明显不是我们期望的
+   
+    问题又来了 
+    为什么基类的指针可以指向派生类 而派生类的指针却不能指向基类
+    还是跟继承过后的内存布局有关系 因为继承关系中的内存布局为
+    p
+    父类内存区域|子类内存区域
+    低                    高
+    父类指针p就是指向的内存区域开头的那部分 所以从父类向派生类进行类型转换是安全的
+    但是如果是派生类的指针却不能指向父类 那是因为派生类内存区域较大 转换成一个基类类型的指针时 就有可能丢失掉自己本身那一部分数据
+    
+    然后就是又涉及到dynamic_cast和static_cast的区别
+    主要区别就在于类类型的转换上 static_cast不保证其安全性
+    dynamic_cast则要根据目标类型和源类型是否有继承关系 来进行类型转换 如果转换失败则返回空!
+  

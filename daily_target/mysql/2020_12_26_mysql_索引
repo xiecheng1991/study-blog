@@ -49,5 +49,29 @@ InnoDB大概是的b+树索引 大概是1200个结点 当这棵树高为4的时�
   1. 主键长度越长 普通索引(非主键索引的叶子结点越长),普通索引占用的空间也就越小(所以从性能和存储空间方面考虑,自增主键往往是更合理的选择)
   2. 如果该表只有一个索引,就适合拿来做主键!
   
+  索引的创建方式:
+  1. create index 索引名 on 表名(列名)
+    示例代码
+    mysql> create index name_index on T(name);
+    Query OK, 0 rows affected (0.03 sec)
+    Records: 0  Duplicates: 0  Warnings: 0
     
+  2. alter table 表名 add index 索引名(列名)
+    mysql> alter table T drop index name_index;
+    Query OK, 0 rows affected (0.02 sec)
+    Records: 0  Duplicates: 0  Warnings: 0
+  
+  3. 创建表的时候直接指定
+    CREATE TABLE mytable(  
+ 
+      ID INT NOT NULL,   
+ 
+      username VARCHAR(16) NOT NULL,  
+ 
+      INDEX [indexName] (username(length))   //指定username前面length个字符作为索引
+ 
+);  
+  索引的删除方式
+    alter table 表名 drop index 索引名
+    示例代码: alter table T drop index name_index;
   

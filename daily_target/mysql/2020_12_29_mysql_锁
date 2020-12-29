@@ -1,3 +1,5 @@
+mysql 锁的主要目的
+    处理并发问题,当出现并发访问的时候，数据库需要合理的控制资源的访问规则。
 1. 全局锁
     顾名思义,全局锁就是对整个数据库实例加锁 命令为 Flush table with read lock,之后其他线程更新语句 创建表语句 和更新类的事务提交都将会被阻塞
     全局锁的典型使用场景是,做全库逻辑备份 也就是把整个表都select 出来存成文本
@@ -6,6 +8,25 @@
     如果从库上备份,那么备份期间从库不能执行主库同步过来的binlog,会导致主从延迟
     处理方法 如果数据库引擎支持可重复读事务的话 直接开启一个可重复读的事务 在事务开启时就拿到了那一刻的视图 这样就不会出现上面的问题了
     但是如果不支持事务比如myisam这种不支持事务的引擎 就必须得用FTWRL方式保证数据的一致性
+    
+    实例1 设置了读锁
+    session A
+    mysql> flush tables with read lock;
+    Query OK, 0 rows affected (0.00 sec)
+    
+    session B
+    mysql> insert into T values(600, 6, t6);
+    ERROR 1223 (HY000): Can't execute the query because you have a conflicting read lock
+    
+    --释放全局锁
+    session A
+    mysql> unlock tables;
+    Query OK, 0 rows affected (0.01 sec)
+    
+    session B
+    mysql> insert into T values(600, 6, 't6');
+    Query OK, 1 row affected (0.01 sec)
+    
     
     set global readonly = true 和FWTWRL
     set global readonly = true 虽然他也可以让全库进入只读状态

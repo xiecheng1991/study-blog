@@ -57,8 +57,8 @@ InnoDB大概是的b+树索引 大概是1200个结点 当这棵树高为4的时�
     Records: 0  Duplicates: 0  Warnings: 0
     
   2. alter table 表名 add index 索引名(列名)
-    mysql> alter table T drop index name_index;
-    Query OK, 0 rows affected (0.02 sec)
+    mysql> alter table T add index name_index(name);
+    Query OK, 0 rows affected (0.06 sec)
     Records: 0  Duplicates: 0  Warnings: 0
   
   3. 创建表的时候直接指定
@@ -73,5 +73,7 @@ InnoDB大概是的b+树索引 大概是1200个结点 当这棵树高为4的时�
 );  
   索引的删除方式
     alter table 表名 drop index 索引名
-    示例代码: alter table T drop index name_index;
+    mysql> alter table T drop index name_index;
+    Query OK, 0 rows affected (0.02 sec)
+    Records: 0  Duplicates: 0  Warnings: 0
   

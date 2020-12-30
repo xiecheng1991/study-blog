@@ -39,5 +39,15 @@
    
    虽然类不属于任何成员 但是可以通过成员对象 指针或者引用进行访问静态变量,并且成员函数内部也不需要使用作用域限定符访问
   
- 通过在成员前面加static关键字 可以是private或者protect的
- private区域的 只能在本类中访问,protect的可以在本类和子类当中访问到
+1 #include<string>
+  2 class Account {
+  3     public:
+  4         void calculate() { amount = amount + interestRate; }
+  5         static double Rate() { return interestRate; }
+  6         static void Rate( double );
+  7     private:
+  8         std::string owner;
+  9         double amount;
+ 10         static constexpr double interestRate = 1.0; 常量表达式可以在类内部进行初始化 因为是常量值最终会去到常量区
+ 11         static double initRate;
+ 12 };

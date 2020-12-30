@@ -51,3 +51,6 @@
  10         static constexpr double interestRate = 1.0; 常量表达式可以在类内部进行初始化 因为是常量值最终会去到常量区
  11         static double initRate;
  12 };
+
+const和constexpr的区别在于constexpr要求能够在编译期间就能够算出来
+而const只保证了在运行期间不被修改

@@ -1,0 +1,36 @@
+unix下文件io的总结
+unix下一切皆文件
+所以文件句柄和打开的套接字等都是一个文件 存放在/dev/fd/ 目录一下
+文件句柄
+0 标准输入
+1 标准输出
+2 标准出错
+文件句柄fd
+int dup(int fd);
+int dup2(int fd, int fd2); 参数fd2的值指定为返回值 但是指向的fd的文件表项 如果fd2已经被打开了 则先关闭fd2 如果fd==fd2则直接返回fd2 且不关闭fd2
+
+文件句柄属性操作
+int fcntl( int fd, int cmd, .... ) fd为描述符 cmd就是各个选项o_nonblock等等 需要时再百度
+
+从文件中读取
+int read( int fd, void* buf, int size ); 出错返回-1 buf用来保存读到的内容 size表示期望读取的字节 返回值表示实际读取到的字节
+
+向文件写
+int write( int fd, const void* buf, int size ); 出错返回-1 fd文件描述符 buf要写入的内容 size 期望写入多少字节  返回值表示实际写入的字节
+
+原子操作
+操作A和B时不会被打断 中间不会被打断
+所以原子读
+size_t pread( int fd, void* buf, size_t nbytes, int offset ); 通过offset定位并且原子性的读出nbytes字节到buf当中去
+size_t pwrite( int fd, void* buf, size_t nbytes, int offset ); 通过offset定位并且原子性的写nbytes到文件中去
+
+文件共享
+每个进程都维护一个文件描述符表
+表中的每个描述符又维护了一个文件表项指针(这里包含文件的状态,偏移量等等,v结点指针) v结点指针 ( v结点信息和i结点 ) i结点包含(i结点信息和当前文件长度)
+文件i结点信息时由内核维护的
+
+如果某个进程中维护的描述符的偏移量超过了i结点中的最大值则i结点更新当前文件长度
+
+sync和fsync和fdatasync
+大多数i/o都是通过缓冲区进行的，当我们向文件写入数据时,内核通常将数据复制到缓冲区中,然后排入队列，晚些时候再写入磁盘。这种方式被称为延迟写
+所以上面三个函数就是刷新缓冲区 并且写入磁盘

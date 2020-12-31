@@ -1,0 +1,34 @@
+main函数
+  所有的程序都是从main函数开始
+进程的终止
+  五种正常的方式终止
+    a) 从main返回
+    b) 调用exit
+    c) 调用_exit或者_Exit
+    d) 最后一个线程从启动例程返回
+    e) 从最后一个线程调用pthread_exit
+  三种异常的方式终止
+    a) 调用abort
+    b) 接收到一个信号
+    c) 最后一个线程对取消请求作出响应
+int atexit( void (*func)(void) ) 终止处理程序 这些函数将由exit自动调用
+例子
+  1 #include<unistd.h>         
+  2 #include<stdio.h>          
+  3 #include<stdlib.h>         
+  4 
+  5 void end() {
+  6     printf( "at end\n" );
+  7 }
+  8 
+  9 int
+ 10 main( int argc, char* argv[] ) {
+ 11     atexit( end );
+ 12     return 0;
+ 13 }
+root@instance-u1n6fu49:~/linux/unix_env/proc_env# ./main 
+at end
+
+exit和_exit的区别 
+_exit会直接结束并且不会调用任何善后处理
+_Exit等同于_exit

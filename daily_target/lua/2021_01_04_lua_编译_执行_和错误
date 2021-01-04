@@ -1,0 +1,17 @@
+编译
+dofile是运行lua代码的主要方式，但是dofile只是一个辅助函数 真正执行核心的是loadfile
+loadfile只是从文件中加载代码段，但它不会运行代码，而只是编译，然后将编译好后的代码段封装到一个函数中返回
+function dofile(filename)
+  local f = assert( loadfile(filename) )
+  return f
+end
+所以要多次运行一个文件则多执行几次loadfile的返回值
+
+思考 热更新问题
+可以多loadfile几次然后重新执行达到热更的目的，但是代码中一般都是以require的方式代码的加载
+
+require 的方式加载文件 会先去package.loaded[filename]当中去检查 如果package.loaded[filename]不为nil则直接返回 否则就去preload找预先加载器  path和cpath路径下去找对应的文件
+
+所以loadfile和dofile的主要区别在于
+dofile编译并且执行 loadfile执行不执行 需要用户手动执行
+

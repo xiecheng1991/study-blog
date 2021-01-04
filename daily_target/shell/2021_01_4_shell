@@ -1,0 +1,58 @@
+shell脚本
+脚本格式
+  #! /bin/bash
+  echo "hello world"
+  #! 是一个约定的标记 它告诉系统这个脚本需要什么解释器来执行
+  echo 用于向窗口输出文本
+
+脚本运行
+  chmod +x test.sh 给脚本加可执行权限
+  1.作为可执行程序 cd 到脚本目录 执行./test.sh
+  2. 作为解释器参数 /bin/bash test.sh 这种写法就不需要#! /bin/bash 因为已经指定了解释器了
+  
+shell 变量
+1. 定义变量
+  your_name="runoob.com" 中间不能要空格且定义变量时 不需要$符号
+  
+2. 使用变量
+  echo $your_name
+
+3. 只读变量 使用readonly命令可以将变量设置为只读变量
+  readonly your_name
+
+4. 删除变量 使用unset命令可以删除变量
+  unset your_name
+  
+5. 变量类型
+  1) 局部变量 在脚本或者命令中定义，仅在当前shell中有效,其他shell 启动的程序不能访问
+  2) 环境变量 所有的程序,包括shell启动的程序,都能访问环境变量,有些程序需要环境变量来保证其正常运行。必要时shell也可以定义环境变量
+  3) shell变量 shell变量是由shell程序设置的特殊变量。shell变量中有一部分环境变量，有一部分是局部变量,这些变量保证了shell的正常运行
+  
+shell 字符串
+  1. 单引号
+    str='hello world'
+  2. 双引号
+    str = "Hello "%your_name""
+    
+ 双引号和单引号的区别
+ 单引号字串中不能出现单独一个的单引号（对单引号使用转义符后也不行），但可成对出现，作为字符串拼接使用。
+ 
+ 获取字符串长度
+ string="abcd"
+ echo ${#string} #输出4
+ 
+ 提取子字符串
+ string="runoob is a great site"
+ #截取第2个到第4个字符 第一个值得索引为0
+ echo ${string:1:4} #输出unoo
+ 
+ 查找子字符串
+ 查找字符i或者o的位置那个字母先出现就计算那个
+ echo `expr index "$string" io` #输出4
+ 
+ 
+  
+    
+  
+  
+

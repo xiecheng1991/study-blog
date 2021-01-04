@@ -50,6 +50,34 @@ shell 字符串
  查找字符i或者o的位置那个字母先出现就计算那个
  echo `expr index "$string" io` #输出4
  
+ shell数组
+  bash支持一维数组并且没有限定数组大小 数组元素从下标0开始
+  1）数组的定义 在shell中用括号来表示数组，数组元素用"空格"分割开
+    array=(value0 value1 value2 value3)
+    或者
+    array_name=(
+      value0
+      value1
+      value2
+      value3
+    )
+    还可以使用不连续的下标 并且下标的范围没有限制
+    
+  2) 读取数组
+    valuen=${array_name[n]}
+    使用@可以获取数组中所有元素
+    echo ${array_name[@]}
+    
+  3) 获取数组长度
+    与获取字符串长度是类似的
+    length=${#array_name[@]} 或者 length=${#array_name[*]}
+ 
+ shell注释
+ 1) 单行注释 前面#
+ 2) 多行注释 :<<! 也可以使用其他符号
+ !
+ 
+  
  
   
     

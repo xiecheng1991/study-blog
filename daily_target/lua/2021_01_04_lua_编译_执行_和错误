@@ -15,3 +15,11 @@ require 的方式加载文件 会先去package.loaded[filename]当中去检查 �
 所以loadfile和dofile的主要区别在于
 dofile编译并且执行 loadfile执行不执行 需要用户手动执行
 
+
+load和loadfile的区别在于
+如果调用失败 load和loadfiel都会返回一个错误信息和nil值
+load是从一个文件或者函数中读取代码段
+load(字符串) 会将该字符串封装到一个函数中进行返回
+load( 函数 ) load会一直执行这个函数直到该函数返回nil
+
+

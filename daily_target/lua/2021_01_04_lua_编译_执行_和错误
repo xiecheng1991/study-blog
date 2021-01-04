@@ -30,4 +30,28 @@ load (chunk [, chunkname [, mode [, env]]])
   env 如果不指定则默认是全局表 否则就是指定的表,并且如果没有传全局表 在load( source )使用全局变量会找不到                                
 
 
-
+预编译
+  luac -o 目标文件名 源文件
+  
+错误
+  因为lua语言是嵌入在应用程序中的扩展语言，所以当错误发生时并不能简单的崩溃退出,相反的是提供了错误处理方式
+  error 通过error并传递一个错误信息来引发一个错误
+  assert断言
+  
+错误处理
+  1 --以下示例错误对象如果是个字符串,lua还会把一些错误发生的位置信息附上
+  2 --local ok, err = pcall( function() error( { code = 1 } ) end)
+  3 --[[
+  4 local ok, err = pcall( function() error( "my error" ) end)
+  5 print( err )               
+  6 ]]--
+  7 
+  8 --因为pcall返回错误信息时,部分的调用栈已经被破坏了 所以拿不到发生错误时的完整函数调用栈信息
+  9 
+ 10 --xpcall通过提供通过提供第二个参数(消息处理函数)，当发生错误时Lua会在调用栈展开前调用处理函数
+ 11 --所以通过搭配debug调试库来获取有关错误的更多信息
+ 12 --local ok, err = xpcall( function() error( "my error" ) end, debug.debug)
+ 13 --[[
+ 14 local ok, err = xpcall( function() error( "my error" ) end, debug.traceback)
+ 15 print( err )
+ 16 ]]--

@@ -26,7 +26,7 @@
   与lua语言的闭包不同的是 C语言的闭包不能共享upvalue值，每个闭包都有其独立的upvalue值,但是我们可以设置不同的函数的上值指向一张共同的表，这张表就成为一个共同的环境，函数在其中能够共享数据
   #define luaL_newlib( L, lib ) ( luaL_newlibtable( L, lib ), luaL_setfuncs( L, lib, 0 ) )
   luaL_newlibtable只是预创建一个大小为lib函数数量的表，然后用luaL_setfuncs( L, lib, 0 ) 把lib函数添加到位于栈顶的新表中
-  luaL_setfuncs的第三个参数，这个参数给出了库中新函数共享的上值个数
+  luaL_setfuncs的第三个参数，这个参数给出了库中新函数共享的上值个数,函数的upvalue要先入栈
   
   
   

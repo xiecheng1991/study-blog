@@ -22,4 +22,12 @@ load是从一个文件或者函数中读取代码段
 load(字符串) 会将该字符串封装到一个函数中进行返回
 load( 函数 ) load会一直执行这个函数直到该函数返回nil
 
+load (chunk [, chunkname [, mode [, env]]])
+  如果chunk是字符串 return function() truck end
+  如果chunk是函数 则调用这个函数
+  chunkname 在错误消息和调试消息中指定代码块的名字
+  mode 如果是"b" 则是二进制文本这个时候load不会返回  如果是"t"则是文本代码块 如果是bt则可以是文本也可以是二进制
+  env 如果不指定则默认是全局表 否则就是指定的表,并且如果没有传全局表 在load( source )使用全局变量会找不到                                
+
+
 

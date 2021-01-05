@@ -77,8 +77,92 @@ shell 字符串
  2) 多行注释 :<<! 也可以使用其他符号
  !
  
+ shell参数传递
+ ./test.sh param1 param2
+ 使用 $0 就是param1
+ 使用 $1 就是param2
+ 
+ 几个特殊字符
+ $# 传递到脚本的参数个数
+ $* 以一个单字符串显示所有向脚本传递的参数(单字符串) "$0 $1 $@"
+ $$ 脚本运行的当前进程ID
+ $! 后台运行的最后一个进程ID
+ $@ 与$* 但是使用时加引号 并在引号中返回每个参数（多个字符串）"$0" "$1" "$@"
+ $? 显示最后命令的退出状态
+ $- 显示shell当前使用的当前选项与set命令相同
+ 
+ shell 基本运算符
+ expr
+  expr是一款表达式计算工具，使用它能完成求值操作
+  #!/bin/bash
+  val=`expr 2 + 2`
+  echo "两数之和为 : $val"
+  两点注意
+  1）完整的表达式和运算符之间要有空格 例如2+2是不对的 必须写成2 + 2
+  2）完整的表达式要被``包含在这个字符在esc下边 不是单引号
+  
+ 算数运算符 + - * / % == !=
+  
+ 关系运算符
+  -eq 检测两个数相等
+  -ne 检测两个数不等
+  -gt 检测左边大于右边
+  -lt 检测左边小于右边
+  -ge 检测左边是否大于等于右边
+  -le 检测左边是否小于等于右边
+  
+ bool运算符
+  ! 非运算
+  -o 或运算 or 有一个表达式为 true 则返回 true。
+  -a 与运算 and 两个表达式都为 true 才返回 true。
+  
+  逻辑运算
+    && 等同于 -a
+    || 等同于 -o
+  
+  字符串运算
+  = 两个字符串是否相等
+  != 检测是否不等
+  -z 检测长度是否为0
+  -n 检测长度是否不为0
+  $ 检测字符串是否为空
+  
+  
+shell流程控制
+  if then
+  fi
+  
+  if then
+  elif then
+  else then
+  fi
+  
+  for循环
+  for var in item1 item2...itemn
+  do
+  done
+  
+ 例子:
+ for str in "this is a test" "this is a"                                                                                                  
+ do
+      echo ${str}
+      echo "-----"
+ done
+ this is a test
+-----
+this is a
+-----
+ 
+  
+  while语句
+  while condition 
+  do
+  
+  done
+  
   
  
+  
   
     
   

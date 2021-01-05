@@ -160,6 +160,42 @@ this is a
   
   done
   
+  until循环 会一直执行到condition为true为止
+  util condition
+  do
+    command
+  done
+  
+  case 语句
+  case 值 in
+  模式1)
+    command
+  ;;
+  模式2)
+    command
+  ;;
+  esac
+  
+  跳出循环break continue
+  
+  shell函数
+  []代表可选
+  [function] funcname[()]
+  {
+    action;
+    [return int]
+  }
+  说明
+  1、可以带function fun() 定义，也可以直接fun() 定义,不带任何参数。
+  2、参数返回，可以显示加：return 返回，如果不加，将以最后一条命令运行结果，作为返回值。 return后跟数值n(0-255
+  
+  函数参数
+  funcparam 1 2 3 4 5 6 从左向右传递参数
+  $1 第一个参数
+  $2 第二个参数
+  ....
+  
+  
   
  
   

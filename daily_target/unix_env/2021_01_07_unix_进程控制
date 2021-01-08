@@ -115,7 +115,7 @@ wait和waitpid
   父进程可以选择忽略(默认处理是忽略)该信号,也可以提供一个信号处理函数
   
   wait和waitpid的执行
-  a) 如果所有进程都还在运行 则阻塞
+  a) 如果所有子进程都还在运行 则阻塞
   b) 如果一个子进程已终止,正等待父进程取其终止状态，则立即取得该子进程的终止状态并返回
   c) 如果它没有任何子进程则立即出错返回
   返回终止子进程的进程ID
@@ -128,6 +128,23 @@ wait和waitpid
   pid == 0 等待组ID等于调用进程ID的人一子进程
   pid < -1 等待组ID等于pid绝对值的任一子进程
   
+  wait和waipid的区别
+  a) waitpid 可等待一个特定的进程,而wait则返回任一终止子进程的状态
+  b) waitpid 提供了一个wait的非阻塞版本。有时希望获取一个子进程的状态，但不想阻塞
+  c) waitpid 通过WUNTRACED和WCONTINUED选项支持作业控制
+  
+waitid函数
+  int waitid( idtype_t idtype, id_t id, siginfo *infop, int options );
+  waitid与waitpid类似 允许一个进程指定要等待的子进程。但它使用两个单独的参数表示要等待的子进程所属的类型
+  idtype
+  P_PID 等待一特定的进程: id包含要等待子进程的进程ID
+  P_PGID 等待一特定进程组中的任一子进程,id包含要等待子进程的进程组ID
+  P_ALL 等待任一子进程忽略id
+  
+wait3和wait4
+  就是返回值多了一个资源的使用情况
+
+
   
   
  

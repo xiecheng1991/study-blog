@@ -109,8 +109,8 @@ exit
     一个已经终止 但是其父进程尚未对其进行善后处理(获取它的退出信息，释放它仍占用的资源)的进程就被称为僵尸进程,这也是为什么要把所有的孤儿进程的父进程改成init进程
     
 wait和waitpid
-  int wait( int* statloc );
-  int waitpid( pid_t pid, int* statloc, int options )
+  pid_t wait( int* statloc );
+  pid_t waitpid( pid_t pid, int* statloc, int options )
   当一个进程正常或者异常终止时,内核就向其父进程发送SIGCHLD信号，因为子进程终止时一个异步事件(这可以在父进程运行的任何时候发生)，所以这种信号也是内核向父进程发的异步通知
   父进程可以选择忽略(默认处理是忽略)该信号,也可以提供一个信号处理函数
   

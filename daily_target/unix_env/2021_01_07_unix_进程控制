@@ -118,9 +118,15 @@ wait和waitpid
   a) 如果所有进程都还在运行 则阻塞
   b) 如果一个子进程已终止,正等待父进程取其终止状态，则立即取得该子进程的终止状态并返回
   c) 如果它没有任何子进程则立即出错返回
+  返回终止子进程的进程ID
   
   如果说收到了SIGCHLD信号调用wait那么wait会立即返回 如果是随机调用wait wait就可能会被阻塞 直到有子进程终止
   statloc指针如果不为空，则进程的终止状态就放在statloc指针所指向的内存区域中
+  pid_t waitpid( pid_t pid )
+  pid == -1 等待任一子进程，此时wait和waitpid等效
+  pid > 0 等待ID与pid相等的子进程
+  pid == 0 等待组ID等于调用进程ID的人一子进程
+  pid < -1 等待组ID等于pid绝对值的任一子进程
   
   
   

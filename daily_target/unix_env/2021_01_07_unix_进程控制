@@ -164,10 +164,23 @@ int execlp(const char *filename, const char *arg0, ..., (char*)0);
 int execvp(const char *filename, char *const argv);
 int fexecve(int fd, char* const argv[], char* const envp[] );
 
+以上函数如果出错,返回-1 若成功不返回
+
+
 这些函数的第一个区别是前面四个函数 都是以路径名作为参数, 后面两个都是以文件名作为参数，最后一个取文件描述符
   a) 如果filename中包含/, 则将其视为路径名;
   b) 否则就按PATH环境变量，在它所指定的各目录中搜寻可执行文件。
-  
+execve和execlp 函数的特别之处
+  如果这两个函数使用路径前缀找到了一个可执行文件，但是该文件不是链接编辑器产生的可执行文件，则认为它是一个shell脚本，于是试着调用/bin/sh,并以该filename作为shell的输入
+
+以e结尾的3个函数 execle execve和fexecve 可以传递一个指向环境字符串指针数组的指针。其他四个函数则使用调用进程中enviroment变量为新进程复制现有的环境
+
+这七个函数的记忆方法
+字母p表示该函数取filename作为参数，并且用PATH环境变量寻找可执行文件
+字母l取一个参数表与v互斥 v表示该函数取一个argv[]矢量
+字母e 表示该函数取envp[]数组而不使用当前环境
+
+关于描述符 FD_CLOEXEC标识的说明，则在执行exec时要将该描述符关闭，否则保持打开
  
       
       

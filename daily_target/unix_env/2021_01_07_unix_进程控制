@@ -203,7 +203,7 @@ execve和execlp 函数的特别之处
   c) PRIO_PGRP 表示进程组
   如果which参数作用于多个进程，则返回所有作用进程中优先级最高的
   
-      
+  nice值越高 获得cpu调度机会越少
   
   
   

@@ -182,7 +182,27 @@ execve和execlp 函数的特别之处
 
 关于描述符 FD_CLOEXEC标识的说明，则在执行exec时要将该描述符关闭，否则保持打开
  
-      
+进程调度
+  nice代表友好度
+  unix在历史上对进程提供的只是基于调度优先级的粗粒度的控制。调度策略和调度优先级是由内核确定的。进程可以通过调整nice值选择以更低优先级运行,只有特权进程允许提高调度权限。
+  nice值越小 优先级越高 NZERO是系统默认的nice值
+  #include<unistd.h>
+  int nice(int incr); 若成功返回新的nice值NZERO;若出错返回-1
+  如果这个incr过大或者过小都会被修正为一个合法值
+  需要注意的是由于-1是合法的成功返回值,在调用nice函数之前需要清楚errno值，如果调用成功并且返回值-1,那么errno值依然为0.如果errno不为0 说明nice调用失败
+  
+  nice( 0 ) 返回当前进程的优先级
+  
+  #include<sys/resource.h>
+  getpriority(int which, id_t who) 若成功返回-NZERO~NZERO-1之间的nice值，若出错返回-1
+  setpriority(int which, id_t who, int value);
+  
+  which参数
+  a) PRIO_PROCESS 表示进程
+  b) PRIO_USER 表示用户ID who为0 使用调用进程的实际ID
+  c) PRIO_PGRP 表示进程组
+  如果which参数作用于多个进程，则返回所有作用进程中优先级最高的
+  
       
   
   

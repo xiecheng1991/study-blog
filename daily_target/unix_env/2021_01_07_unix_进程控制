@@ -204,7 +204,102 @@ execve和execlp 函数的特别之处
   如果which参数作用于多个进程，则返回所有作用进程中优先级最高的
   
   nice值越高 获得cpu调度机会越少
-  
+  如下示例代码
+      1 #include<stdio.h>
+  2 #include<stdlib.h>
+  3 #include<unistd.h>
+  4 #include<sys/time.h>
+  5 #include<errno.h>
+  6 
+  7 unsigned long long count;
+  8 struct timeval end;
+  9 
+ 10 void checktime( char* str ) {
+ 11     struct timeval tv; 
+ 12     gettimeofday( &tv, NULL );
+ 13     if ( tv.tv_sec >= end.tv_sec && tv.tv_usec >= end.tv_usec ) {
+ 14         printf( "%s count = %lld\n", str, count );
+ 15         exit( 0 );
+ 16     }
+ 17 }
+ 18 
+ 19 int
+ 20 main( int argc, char* argv[] ) {
+ 21     pid_t pid;
+ 22     char* s;
+ 23     int nzero, ret;
+ 24     int adj = 0;
+ 25 
+ 26     setbuf( stdout, NULL ); //设置为非缓冲
+ 27 
+ 28 #if defined( NZERO )
+ 29     nzero = NZERO;
+ 30 #elif defined( _SC_NZERO )
+ 31     nzero = sysconf( _SC_NZERO );
+ 32 #else
+ 33 #error NZERO undefined
+ 34 #endif
+ 35     printf( "nzero = %d\n", nzero );
+ 36     if ( argc == 2 ) {
+ 37         adj = strtol( argv[1], NULL, 10 );
+ 38     }
+ 39     gettimeofday( &end, NULL );
+ 40 
+ 41     end.tv_sec += 10; // run for 10 second
+ 42 
+ 43     if ( ( pid = fork() ) < 0 ) {
+ 44         printf( "fork error\n" );
+ 45         exit( 0 );
+ 46     } else if ( pid == 0 ) {
+ 47         s = "child";
+ 48         printf( "current nice value in child is:%d, adjusting by %d\n",
+ 49                 nice( 0 ) + nzero, adj );
+ 50         errno = 0;
+ 51         //针对书里描述 nice值可能返回-1 但是是合法的返回 所以需要判断errno是不是为0 才能判断是否失败
+ 52         if ( ( ret = nice( adj ) ) == -1 && errno != 0 ) {
+ 53             printf( "child set scheduling priority\n" );
+ 54             exit( 0 );
+ 55         }
+ 56         printf( "nice(adj):%d\n", nice( 0 ) );
+ 57         printf( "now child nice value is %d\n", ret + nzero );
+ 58     } else {
+ 59         s = "parent";
+ 60         printf( "current nice value in parent is %d\n", nice( 0 ) + nzero );
+ 61     }
+ 62 
+ 63     for ( ; ; ) {
+ 64         if ( ++count == 0 ) {
+ 65             printf( "%s count wrap", s );
+ 66             exit( 0 );
+ 67         }
+ 68         checktime( s );
+ 69     }
+ 70 
+ 71     return 0;
+ 72 }
+执行结果参考如下
+默认值情况
+root@instance-u1n6fu49:~/linux/unix_env/condition# ./main 
+nzero = 20
+current nice value in parent is 20
+current nice value in child is:20, adjusting by 0
+nice(adj):0
+now child nice value is 20
+parent count = 57729365
+root@instance-u1n6fu49:~/linux/unix_env/condition# child count = 58020451
+父子进程 各占一半的cpu
+
+最高有效nice值(最低调度优先级)
+root@instance-u1n6fu49:~/linux/unix_env/condition# ./main 20
+nzero = 20
+current nice value in parent is 20
+current nice value in child is:20, adjusting by 20
+nice(adj):19                    //所以超过了nzero最大有效值会调整为最大有效值
+now child nice value is 39
+parent count = 116389647
+root@instance-u1n6fu49:~/linux/unix_env/condition# child count = 1704579
+从上面可以看出父进程占了绝大部分的cpu
+
   
   
   

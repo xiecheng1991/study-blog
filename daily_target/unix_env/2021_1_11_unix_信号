@@ -157,5 +157,20 @@ sigprocmask 检测或更改 或同时检测和更改进程的信号屏蔽字
   但是不能屏蔽SIGKILL和SIGSTOP信号
   3) 如果set是个空指针，则不改变
 
+sigpending
+  int sigpending( sigset_t *set ); sigpending函数返回一个信号集，对于调用进程而言，其中的各个信号是阻塞不能发送的，因而也一定是未决的，通过参数set返回
+  
+sigaction
+int sigaction( int signo, const struct sigaction *restrict act, struct sigaction* restrict oact );的功能是检查或修改(或者检查并修改)与指定信号相关联的处理动作,此函数替代了signal函数
+  1) signo是要检测或修改的信号编号
+  2) act如果为非空则要修改其动作
+  3）oact非空，则返回信号的上一个动作
+struct sigaction {
+  void ( *sa_handler )( int ); //信号处理函数的地址
+  sigset_t sa_mask;           //在调用sa_handler所指向的信号处理函数之前 需要先屏蔽掉sa
+  int sa_flag;
+  void ( *sa_sigaction )( int, siginfo_t*, void* );
+}
+  
   
   

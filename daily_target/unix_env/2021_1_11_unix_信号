@@ -198,3 +198,16 @@ struct sigaction {
   2) 若信号是SIGBUS SIGILL SIGFPE或SIGSEGV,则si_addr包含造成故障的源地址
   3) si_errno字段包含错误码,它对应于造成信号产生的条件,并由实现定义
   
+  SA_RESTART标志 意味着被这些信号中断的系统调用都能自动启动
+  SA_INTERRUPT 由此信号中断的系统调用不会自动重启
+  
+sigsetjmp和siglongjmp
+在之前的信号处理程序中使用了longjmp跳出信号处理程序，但是会有一个问题，因为正在被处理的信号会被操作系统自动加入到信号屏蔽字中，这样会使后来产生的信号会被屏蔽
+
+setjmp和longjmp对信号屏蔽字没有处理,系统新增了sigsetjmp和siglongjmp
+#include<setjmp.h>
+int sigsetjmp( sigjmp_buf env, int savemask ); 若直接调用返回0，若从siglongjmp调用返回，则返回非0
+void siglongjmp( sigjmp_buf env, int val );
+和setjmp以及longjmp的区别在于增加了一个savemask参数 如果savemask非0 则sigsetjmp在env中保存了进程的当前信号屏蔽字，则siglongjmp从中恢复保存的信号屏蔽字
+
+  

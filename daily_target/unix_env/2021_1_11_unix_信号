@@ -167,10 +167,34 @@ int sigaction( int signo, const struct sigaction *restrict act, struct sigaction
   3）oact非空，则返回信号的上一个动作
 struct sigaction {
   void ( *sa_handler )( int ); //信号处理函数的地址
-  sigset_t sa_mask;           //在调用sa_handler所指向的信号处理函数之前 需要先屏蔽掉sa
+  sigset_t sa_mask;           //在调用sa_handler所指向的信号处理函数之前 需要先屏蔽掉sa_mask信号集中的信号,然后当从sa_handler信号处理函数返回以后又把sa_mask当中的信号处理成原先值
   int sa_flag;
   void ( *sa_sigaction )( int, siginfo_t*, void* );
 }
+  -----------------------------------------------------在调用信号处理程序时，操作系统建立的新信号屏蔽字包括正在被递送的信号因此保证了当一个信号正在被处理时再次产生该信号它就会阻塞到
+  对前一个信号的处理结束为止------------------------------这个是重点啊!
   
-  
+  sa_sigaction 是一个替代的信号处理程序,在sigaction结构体中的sa_flag使用了SA_SIGINFO标志时，使用该信号处理程序
+  对于sa_sigaction和sa_handler两者实现可能在同一个存储区,所以应用只能一次使用这个两个字段中的一个
+  通常情况下信号处理程序为
+  void handler( int signo );
+  void handler( int signo, siginfo_t *info, void *context );
+  siginfo结构体:
+  struct siginfo {
+      int si_signo;   //信号编号
+      int si_errno;   //如果是非0值 就是errno值
+      int si_code;    //基于信号的附加信息
+      pid_t si_pid;   //产生信号的的进程ID
+      uid_t si_uid;   //产生信号的进程真正用户ID
+      void  *si_addr; //产生错误的地址
+      int si_status; //退出码或者信号编号
+      union sigval si_value; //
+  }
+  union sigval {
+    int sival_int;
+    void* sival_ptr;
+  }
+  1) 若信号是SIGCHLD 则设置si_pid, si_status和si_uid
+  2) 若信号是SIGBUS SIGILL SIGFPE或SIGSEGV,则si_addr包含造成故障的源地址
+  3) si_errno字段包含错误码,它对应于造成信号产生的条件,并由实现定义
   

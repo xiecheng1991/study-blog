@@ -147,5 +147,15 @@ kill和rase
   pause函数使进程挂起直到捕捉到一个信号
   只有当一个信号被捕捉并且从对应信号的处理程序返回 这个pause函数才会返回
 
+sigprocmask 检测或更改 或同时检测和更改进程的信号屏蔽字
+  sigprocmask(int how, const sigset_t *restrict set, sigset_t *restrict oset);
+  1) oset是非空指针,那么进程的当前信号屏蔽字通过oset返回
+  2) set是一个非空指针,则参数how指示如何修改当前信号屏蔽字
+    2.1） how为SIG_BLOCK 该进程新的屏蔽字是当前信号屏蔽字和set指向信号集的并集。(信号sigset_t set中新增)
+    2.2） how为SIG_UNBLOCK 则该进程新的屏蔽字是当前信号屏蔽字和set指向的信号集补集的交集
+    2.3)  how为SIG_SETMASK 则该进程屏蔽set指向的值
+  但是不能屏蔽SIGKILL和SIGSTOP信号
+  3) 如果set是个空指针，则不改变
+
   
   

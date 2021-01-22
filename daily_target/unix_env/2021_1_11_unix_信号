@@ -210,4 +210,12 @@ int sigsetjmp( sigjmp_buf env, int savemask ); 若直接调用返回0，若从si
 void siglongjmp( sigjmp_buf env, int val );
 和setjmp以及longjmp的区别在于增加了一个savemask参数 如果savemask非0 则sigsetjmp在env中保存了进程的当前信号屏蔽字，则siglongjmp从中恢复保存的信号屏蔽字
 
+sigsuspend
+  #include<signal.h>
+  int sigsuspend( const sigset_t *sigmask ); 屏蔽sigmask当中的信号, 然后放弃CPU处于挂起状态，然后等待接收sigmask信号集中以外的信号,调用处理函数，然后还原信号集
+  sigsuspend返回，进程恢复执行, 只是屏蔽信号到进程挂起 是一个原子操作而已，避免出错 导致这个进程永远挂起 就像产生了一个不可靠信号
+  
+  
+  
+
   

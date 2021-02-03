@@ -54,5 +54,123 @@ void pthread_cleanup_push( void(*rtn)(void *), void* arg );
 void pthread_cleanup_pop(int execute);
 
 pthread_cleanup_pop和pthread_cleanup_push调用要匹配起来,否则编译可能通不过
+如果线程是从他的启动例程返回而终止的话，它的清理处理程序就不会被调用，而且调用程序是按注册顺序相反的
+--如下例子
+  1 #include<stdio.h>
+  2 #include<stdlib.h>         
+  3 #include<pthread.h>        
+  4 #include<string.h>         
+  5 
+  6 void                       
+  7 cleanup(void *arg) {
+  8     printf("cleanup:%s\n", (char*)arg);
+  9 }
+ 10 
+ 11 void *                     
+ 12 thr_fn1( void* arg ) {
+ 13     printf( "thread 1 start\n" );   
+ 14     pthread_cleanup_push( cleanup, "thread 1 first handler" );
+ 15     pthread_cleanup_push( cleanup, "thread 1 second handler" );
+ 16     printf( "thread 1 push complete\n" );
+ 17     if ( arg ) {
+ 18         return ( void* ) 1;
+ 19     }
+ 20     pthread_cleanup_pop( 0 );
+ 21     pthread_cleanup_pop( 0 );
+ 22 
+ 23     return ( void* ) 1;
+ 24 }
+ 25 
+ 26 void *
+ 27 thr_fn2( void* arg ) {
+ 28     printf( "thread 2 start\n" );   
+ 29     pthread_cleanup_push( cleanup, "thread 2 frist handler" );
+ 30     pthread_cleanup_push( cleanup, "thread 2 second handler" );
+ 31     printf( "thread 2 push complete" );
+ 32 
+ 33     if ( arg ) {
+ 34         pthread_exit( (void*)2 );
+ 35     }
+ 36 
+ 37     pthread_cleanup_pop( 0 );
+ 38     pthread_cleanup_pop( 0 );
+ 39     pthread_exit( (void*)2 );
+ 40 }
+ 41 
+ 42 int
+ 43 main( int argc, char* argv[] ) {
+ 44     int err ;
+ 45     pthread_t tid1, tid2;
+ 46     void* tret;
+ 47 
+ 48     err = pthread_create( &tid1, NULL, thr_fn1, (void*) 1 );
+ 49     if ( err != 0 ) {
+ 50         printf( "cant create thread 1\n" );
+ 51         return -1;
+ 52     }
+ 53 
+ 54     err = pthread_join(tid1, &tret);
+ 55     if ( err != 0 ) {
+ 56         printf( "cant join with thread 1\n" );
+ 57         return -1;
+ 58     }
+ 59 
+ 60     printf( "thread 1 exit code %ld\n", (long) tret );
+ 61 
+ 62     err = pthread_create( &tid2, NULL, thr_fn2, (void*) 2 );
+ 63     if ( err != 0 ) {
+ 64         printf( "cant create thread 2\n" );
+ 65         return -1;
+ 66     }
+ 67 
+ 68     err = pthread_join(tid2, &tret);
+ 69     if ( err != 0 ) {
+ 70         printf( "cant join with thread 2\n" );
+ 71         return -1;
+ 72     }
+ 73 
+ 74     printf( "thread 2 exit code %ld\n", (long) tret );
+ 75     return 0;
+ 76 }
+ 
+ root@instance-u1n6fu49:~/linux/unix_env/thread# ./11-5 
+thread 1 start
+thread 1 push complete
+thread 1 exit code 1
+thread 2 start
+thread 2 push completecleanup:thread 2 second handler
+cleanup:thread 2 frist handler
+thread 2 exit code 2
+
+线程的分离
+一般情况下线程的终止状态会保存到直到对该线程调用pthread_join,如果线程已经被分离,线程的底层存储资源可以在线程终止时立即被回收，如果线程已经被分离我们就不能用pthread_join函数等待他的终止状态
+#include<pthread.h>
+int pthread_detach( pthread_t tid );
+成功返回0  否则返回错误编号
+
+线程的同步
+  线程增量操作通常分解如下操作
+  1）从内测读入到寄存器(这也对应了上面线程的组成含有一个寄存器)
+  2) 从寄存器中对变量做增量操作
+  3) 把新的值写回内存单元
+ 
+线程的同步方式
+1) 互斥量
+  互斥量的原理是确保同一时间只有一个线程访问数据 在访问之前加锁 访问之后解锁
+  在加锁以后任何其他视图再次加锁的线程都会被阻塞直到当前线程释放互斥锁,如果释放互斥锁时有一个以上的线程阻塞,那么所有该锁上的线程都会变成可运行状态,第一个变成运行状态的新线程可以对互斥量加锁
+  其他线程再次挂起等待互斥锁变为可用
+ #include<pthread.h>
+ int pthread_mutex_init( pthread_mutex_t restrict* mutex, const pthread_mutexattr_t restrict* attr );
+ int pthread_mutex_destroy( pthread_mutex_t *mutex );
+ 两个函数的返回值:若成功返回0， 否则返回一个错误编号
+ 
+ int pthread_mutex_lock(pthread_mutex_t *mutex);
+ int pthread_mutex_trylock(pthread_mutex_t *mutex); //未获取到锁不会被阻塞
+ int pthread_mutex_unlock(pthread_mutex_t *mutex);
+ 所有函数的返回值 若成功返回0 否则返回错误编号
+ 
+ pthread_mutex_trylock如果互斥量处于未锁住状态时,ptread_mutex_trylock就会锁住互斥量并且返回0 否则就会失败不能锁住互斥量 返回EBUSY
+
+  
 
 

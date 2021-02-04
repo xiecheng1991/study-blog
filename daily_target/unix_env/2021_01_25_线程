@@ -170,7 +170,61 @@ int pthread_detach( pthread_t tid );
  所有函数的返回值 若成功返回0 否则返回错误编号
  
  pthread_mutex_trylock如果互斥量处于未锁住状态时,ptread_mutex_trylock就会锁住互斥量并且返回0 否则就会失败不能锁住互斥量 返回EBUSY
+ 
+ pthread_mutex_timedlock
+  当线程试图获取一个已加锁的互斥量时,pthread_mutex_timedlock互斥量源语 允许绑定线程阻塞时间。
+  pthread_mutex_timedlock函数与pthread_mutex_lock是基本等价的,但是在达到超时时间限制时,pthread_mutex_timedlock不会对互斥量加锁,而是返回错误码ETIMEOUT
+  #include<pthread.h>
+  int pthread_mutex_timedlock(pthread_mutex_t * restrict mutex, const struct timespec* restrict tsptr);
+  若成功返回0 若失败返回错误编号
+ 
 
-  
+读写锁
+  读写锁与互斥锁类似,不过允许更高的并行性 读写锁有3种状态
+  1）读模式下加锁
+  2) 写模式下加锁
+  3) 不加锁状态
+  一次可以有多个线程占有写模式的锁,但是同时只能有一个线程占有写锁
+  当线程以读锁状态时,所有尝试以读锁方式的请求都可以得到访问权限, 当线程以写锁状态时，所有尝试以写锁方式的请求都会被锁住
+#include<pthread.h>
+int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock); 加读锁, 如果当前有写锁 会被阻塞,如果有读锁则加锁成功
+int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock); 写锁, 如果当前有写锁 则会被阻塞
+int pthread_rwlock_unlock(pthread_rwlock_t *rwlock); 解除锁
+所有函数返回值 若成功返回0 否则返回错误码
 
+int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock);
+int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock);
+如果成功返回0 否则返回错误EBUSY
+
+带有超时的读写锁
+#include<pthread.h>
+#include<time.h>
+//和pthread_rwlock_rdlock与pthread_rwlock_wrlock一样如果在超时时还没获得锁 就不再阻塞 返回EBUSY
+int pthread_rwlock_timedrdlock( pthread_rwlock_t * restrict rwlock, const struct time* restrict tsptr );
+int pthread_rwlock_timedwrlock( pthread_rwlock_t * restrict rwlock, const struct time* restrict tsptr );
+
+条件变量
+  条件变量是线程可用的另一种同步方式,将条件变量给多个线程提供了一个汇合的场所,条件变量与互斥量一起使用,允许线程以无竞争的方式等待特定的条件发生
+#include<pthread.h>
+int pthread_cond_init(pthread_cond_t *restrict cond, const thread_condattr* restrict attr); //条件变量在使用之前必须先初始化
+int pthread_cond_destroy(pthread_cond_t* cond);
+上面两个函数若成功返回0,否则返回错误编号
+除非需要创建一个具有非默认属性的条件变量,否则pthread_cond_init函数的attr参数可设置为NULL
+
+#include<pthread.h>
+int pthread_cond_wait(pthread_cond_t *restrict cond, pthread_mutex_t * restrict mutex);
+和pthread_cond_wait函数类似只是多了个超时时间,只是指定了我们愿意等待多长时间
+如果超时时间到期条件还是没有出现,则pthread_cond_timedwait将重新获取互斥量然后返回错误ETIMEDOUT
+int pthread_cond_timedwait( pthread_cond_t * restrict cond, pthread_mutex_t * restrict mutex, const struct timespec * restrict tsptr );
+若成功返回0 若失败返回错误编号
+
+条件变量的工作原理
+  条件本身是由互斥量保护的,线程在改变条件状态之前必须首先锁住互斥量。其他线程在获得互斥量之前不会察觉到这种变化，因为互斥量必须在锁定以后才能计算条件
+  传递给pthread_cond_wait的互斥量对条件进行保护。调用者把锁住的互斥量传给函数，然后线程自动把调用线程放到等待条件的线程队列上，对互斥量解锁，这就关闭了条件检查和线程进入休眠状态
+  等待条件改变这两个操作之间的时间通道，这样线程就不会错过条件的任何变化。pthread_cond_wait返回时,互斥量再次被锁住
+
+被条件变量阻塞的线程唤醒
+int pthread_cond_signal(pthread_cond_t * cond); //唤醒队里头部的一个线程
+int pthread_cond_broadcast(phtead_cond_t* cond); //唤醒所有线程
+两个函数的返回值若成功返回0 否则返回错误编号, 但是必须注意一定要在条件改变以后再给线程发信号
 

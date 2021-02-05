@@ -233,3 +233,30 @@ int pthread_cond_broadcast(phtead_cond_t* cond); //唤醒所有线程
 pthread_cond_wait(&cond, &lock) 拿到这个互斥锁把线程挂到等待条件的线程队列上,然后返回 返回 再加锁
 pthread_mutex_unlock(把这个锁给放开)
 
+示例讲解
+ 31 void*                      
+ 32 print_num( void* arg ) {   
+ 33     int num[3] = {1, 2, 3};
+ 34     int index = 0;         
+ 35     while ( index < 3 ) {  
+ 36         sleep(1);          
+ 37         pthread_mutex_lock( &lock ); //这里加锁避免错过任何条件
+ 38 
+ 39         while ( count % 2 != 1 ) {
+                //把线程加到等待条件变得线程队列中去，然后释放锁
+                //当从pthread_cond_wait返回以后 会再次对互斥量加锁
+                //如果不满足条件 再次进入pthread_cond_wait并且释放锁,如果满足条件跳出循环,执行满足条件以后的逻辑
+ 40             pthread_cond_wait( &cond, &lock );
+ 41         }
+ 42 
+ 43         count++;
+ 44 
+ 45         printf( "%d ", num[index++] );  
+ 46 
+ 47         pthread_mutex_unlock( &lock );  
+ 48         pthread_cond_signal( &cond );   
+ 49 
+ 50     }
+ 51 
+ 52     return ( void* ) 1;
+ 53 }

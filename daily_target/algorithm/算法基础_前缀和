@@ -33,3 +33,6 @@ from index 1 to 3 sum:6
 from index 2 to 4 sum:1003
 
 所以主要提高了连续子数组和的查询效率
+
+算法学习文档参考
+https://zhuanlan.zhihu.com/p/117569086

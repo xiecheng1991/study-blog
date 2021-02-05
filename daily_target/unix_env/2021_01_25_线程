@@ -228,3 +228,8 @@ int pthread_cond_signal(pthread_cond_t * cond); //唤醒队里头部的一个线
 int pthread_cond_broadcast(phtead_cond_t* cond); //唤醒所有线程
 两个函数的返回值若成功返回0 否则返回错误编号, 但是必须注意一定要在条件改变以后再给线程发信号
 
+条件变量中 互斥锁的变化情况 
+首先加锁 (避免 错过任何的条件变化)
+pthread_cond_wait(&cond, &lock) 拿到这个互斥锁把线程挂到等待条件的线程队列上,然后返回 返回 再加锁
+pthread_mutex_unlock(把这个锁给放开)
+

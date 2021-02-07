@@ -260,3 +260,25 @@ pthread_mutex_unlock(把这个锁给放开)
  51 
  52     return ( void* ) 1;
  53 }
+ 
+ 自旋锁
+  自旋锁与互斥量类似，只不过自旋锁在获取锁之前不是让线程睡眠,而是在获取之前一直处于忙等(自旋的)阻塞状态
+  自旋锁适用于如下情况 锁被持有的时间极短,而且线程并不希望在重新调度上花费太多的成本
+  
+  当线程自旋锁变为可用时,CPU不能做其他事情(意思是当本线程获得自旋锁,其他线程就处于挂起的状态?),这也是cpu只能被维持一小段时间的原因
+  #include<pthread.h>
+  //初始化自旋锁
+  int pthread_spin_init(pthread_spinlock *lock, int pshared);
+ //销毁自旋锁
+  int pthread_spin_destroy(pthread_spin_lock *lock);
+  成功返回0 失败返回错误编号
+  
+  #include<pthread>
+  int pthread_spin_lock(pthread_spinlock *lock); //在获取自旋锁之前一直自旋,后者如果不能获取锁,就立即返回EBUSY错误
+  int pthread_spin_trylock(pthread_spinlock* lock);//不会自旋
+  int pthread_spin_unlock(pthread_spinlock* lock);
+  
+  如果已经给自旋锁加锁的话 再次进行加锁 结果就是未定义的,调用pthread_spin_lock函数会返回EDEADLK错误(或者其他错误),或者调用可能永久自旋
+  试图对没有加锁的自旋锁进行解锁结果也是未定义的
+  
+  

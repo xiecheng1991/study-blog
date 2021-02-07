@@ -282,4 +282,81 @@ pthread_mutex_unlock(把这个锁给放开)
   如果已经给自旋锁加锁的话 再次进行加锁 结果就是未定义的,调用pthread_spin_lock函数会返回EDEADLK错误(或者其他错误),或者调用可能永久自旋
   试图对没有加锁的自旋锁进行解锁结果也是未定义的
   
+  ***************************************************************************************************************************
+  自旋锁适用于非抢占式内核 因为当获得自旋锁时,cpu是不能做其他的事情, 如果是单核cpu 那么会有影响 如果是多核cpu肯能就没有多大影响
+  如下代码:
+    #include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<pthread.h>
+#include<string.h>
+#include<time.h>
+
+//测试自旋锁
+
+//每隔1秒 打印一个数字
+//用于测试自旋锁是否会让cpu不能做其他事情
+void*
+thr_fn1( void* arg ) {
+    int count = 0;
+    while( 1 ) {
+        printf( "in thr_fn1 count:%d\n", count );
+        sleep(1);
+    }
+
+    return (void*) 0;
+}
+thr_fn2( void* arg ) {
+    pthread_spinlock_t lock;
+    pthread_spin_init( &lock, PTHREAD_PROCESS_PRIVATE );
+
+    time_t t;
+
+    while( 1 ) {
+        int err = pthread_spin_lock( &lock );
+        if ( err != 0 ) {
+            printf( "pthread spinlock cant lock:%s\n", strerror( err ) );
+            //return ( void* ) -1;
+            continue;
+        }
+        t = time(NULL);
+        time_t new_t;
+        while(1) {
+            new_t = time(NULL);
+            if ( new_t - t >= 2 ) {
+                break;
+            }
+        }
+
+        printf( "spinlock lock success\n" );
+        err = pthread_spin_unlock( &lock );
+    }
+    return ( void* ) 0;
+}
+int
+main( int argc, char* argv[] ) {
+
+    pthread_t tid1, tid2;
+    int err;
+    void* tret;
+
+    err = pthread_create(&tid1, NULL, thr_fn1, NULL);
+    if ( err != 0 ) {
+        printf( "cant create thr_fn1:%s\n", strerror( err ) );
+        return -1;
+    }
+
+    err = pthread_create(&tid2, NULL, thr_fn2, NULL);
+    if ( err != 0 ) {
+        printf( "cant create thr_fn2:%s\n", strerror( err ) );
+        return -1;
+    }
+
+    pthread_join( tid1, &tret );
+    pthread_join( tid2, &tret );
+    return 0;
+ }
+ 
+  ***************************************************************************************************************************
+  
   

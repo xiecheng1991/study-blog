@@ -359,4 +359,93 @@ main( int argc, char* argv[] ) {
  
   ***************************************************************************************************************************
   
+ 屏障(barrier)
+    用户协调多个线程并行工作的同步机制。屏障允许为每个线程等待,直到所有的合作线程都达到某一点,然后从该点继续执行。典型的屏障就是(pthread_join)
+    但屏障对象的概念更广,他们允许任意数量的线程等待,直到所有的线程完成处理工作,而线程不需要退出.所有线程达到屏障后可以接着工作
+ 初始化
+    #include<pthread.h>
+    int pthread_barrier_init( pthread_barrier_t *restrict barrier, const pthread_barrierattr_t * restrict attr, unsigned int count );
+      count 参数用以指定在允许所有线程继续运行之前,必须达到屏障的数目
+    int pthread_barrier_destroy( pthread_barrier_t *barrier );
+    成功返回0，否则返回错误编号
+    
+  #include<pthread.h>
+  //调用此函数来表明线程已完成工作,准备等待所有其他线程追赶上来
+  int pthread_barrier_wait(pthread_barrier_t barrer);
+  //成功返回0 或者PTHREAD_BARRIER_SERIAL_THREAD;否则，返回错误编号
+-------------------------------------------------------------------------调整一下做笔记的思路,先看 然后写代码了解清楚了再来写-------------------------------------------------------
+屏障达到计数过后所有的线程都被唤醒
+除非屏障达到计数，并且线程处于非阻塞状态,屏障就可以被重用了,但是除非调用了pthread_barrier_destroy函数之后 又调用了pthread_barrier_init函数对计数用另外的数进行初始化
+否则屏障计数不会改变
+//如下例子
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<sys/time.h>
+#include<limits.h>
+#include<pthread.h>
+#include<string.h>
+
+pthread_barrier_t t;
+
+void*
+thr_fn1( void* arg ) {
+    for ( int i = 0; i < 10000000; ++i ) {
+
+    }
+    printf( "thr_fn1 1 compelete\n" );
+
+    pthread_barrier_wait( &t );
+
+    printf( "all thread done thr_fn1 quit\n" );
+    return ( void* ) 0;
+}
+
+void*
+thr_fn2( void* arg ) {
+    for ( int i = 0; i < 100000000; ++i ) {
+
+    }
+
+    printf( "thr_fn2 1 compelete\n" );
+
+    pthread_barrier_wait( &t );
+
+    printf( "all thread done thr_fn2 quit\n" );
+    return ( void* ) 0;
+}
+
+int
+main( int argc, char* argv[] ) {
+
+    pthread_t tid1, tid2;
+    int err;
+    void* tret;
+
+    pthread_barrier_init( &t, NULL, 3 ); //包含了主线程
+
+    err = pthread_create( &tid1, NULL, thr_fn1, NULL );
+    if ( err != 0 ) {
+        printf( "cant create thr_fn1:%s\n", strerror( err ) );
+        return -1;
+    }
+
+    err = pthread_create( &tid2, NULL, thr_fn2, NULL );
+    if ( err != 0 ) {
+        printf( "cant create thr_fn2:%s\n", strerror( err ) );
+        return -1;
+    }
+
+    printf( "main thread nothing todo just wait\n" );
+
+    pthread_barrier_wait( &t );
+
+    printf( "all done main thread quit\n" );
+    sleep( 1 );
+    return 0;
+}
+
+   
+   
+  
   

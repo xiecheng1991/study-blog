@@ -132,7 +132,7 @@ int pselect( int maxfd1, fd_set *restrict readfds, fd_set *restrict writefds, fd
 与select的区别如下
 1) select的超时值用timeval结构(秒和微妙)指定,但pselect使用timespec结构(秒和纳秒)，如果平台支持这样的精度就能提供更加精准的超时时间
 2) pselect超时值 被设置为const 这样保证了调用pselect不会改变此值
-3) pselect 可使用可选信号屏蔽字。若sigmask为NULL就和select相同,否则的话屏蔽该信号集指向的信号, 在返回时恢复以前的信号屏蔽字
+3) pselect 可使用可选信号屏蔽字。若sigmask为NULL就和select相同,否则的话屏蔽该信号集指向的信号, 在返回时恢复以前的信号屏蔽字 
 
  ***********************************************************************************************************************************************
  

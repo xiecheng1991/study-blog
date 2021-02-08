@@ -15,6 +15,7 @@ struct sockaddr_in {
   unsigned char sin_zero[8]; //没有实际意义只是为了跟sockaddr结构体在内存中对齐
 }
 
+addr.sin_port=htons(1234);//1234是端口号 要转换成网络字节序
 addr.sin_addr.s_addr = inet_addr("192.168.0.1");
 
 typedef uint32_t in_addr_t;

@@ -1,0 +1,25 @@
+网络地址
+struct sockaddr {
+    unsigned short sa_family;//address family AF_XXX协议簇
+    char sa_data[14];//14bytesofprotocaladdress 14字节协议地址
+}
+
+此数据结构用作bind connect recvfrom sendto等函数的参数,指明地址信息,但是一般编程中并不直接针对此数据结构操作,而是使用另一个与sockaddr等价的数据结构
+
+#include<netinet/in.h>
+struct sockaddr_in {
+  short sin_family;   //协议簇或者协议类型 tcp udp?
+  unsigned short sin_port; //端口号
+  
+  struct in_addr sin_addr; //ip地址 根据in_addr结构体的定义 所以需要把点分十进制的ip地址例如"127.0.0.1"转换成一个uint32_t的长整数
+  unsigned char sin_zero[8]; //没有实际意义只是为了跟sockaddr结构体在内存中对齐
+}
+
+addr.sin_addr.s_addr = inet_addr("192.168.0.1");
+
+typedef uint32_t in_addr_t;
+struct in_addr {
+    in_addr_t s_addr;
+}
+
+

@@ -1,6 +1,7 @@
 补充知识
 修改已经打开的文件描述符属性
 
+#include<fcntl.h>
 int fcntl( int fd, int cmd, long arg );
 出错返回-1 成功返回某个其他的值
 
@@ -9,5 +10,47 @@ fd已经打开的描述符
 cmd代表打算操作的指令
   F_DUPFD用来查找大于或等于参数arg的最小且仍未使用的文件描述符，并且复制参数fd的文件描述符
   F_GETFL获取描述符属性 取得文件描述符状态旗标，此旗标为open（）的参数flags。
+  int val = fcntl( STDOUT_FILENO, F_GETFL, 0 ); 
   F_SETFL修改描述符属性 但只允许O_APPEND、O_NONBLOCK和O_ASYNC位的改变，其他位的改变将不受影响。
+  val |= O_NONBLOCK
+  int err = fcntl( STDOUT_FILENO, F_SETFL, val );
 属性 是一个标志位 进行位运算
+
+
+--记录锁
+#include<fcntl.h>
+int fcntl(int fd, int cmd, .../*struct flock *flockptr*/ );
+
+struct flock {
+    short l_type; //锁的类型 F_RDLOCK(共享读锁) F_WRLOCK(独占性写锁) F_UNLOCK(解锁)
+    short l_whence; //要加锁或者解锁的起始偏移量
+    off_t l_start; //要加锁或者解锁的起始偏移量
+    off_t l_len; //要加锁或者解锁的区域的字节长度
+    pid_t l_pid; //进程ID(l_pid)持有锁能够阻塞当前的进程(仅由F_GETLK返回)
+}
+
+加锁和解锁区域的补充
+  1) 指定区域起始偏移量的两个元素的两个元素与lseek函数中最后两个参数类似.
+    l_whence可选用的值是SEEK_SET, SEEK_CUR或者SEEK_END.
+  2) 锁可以在当前文件尾端处或者开始处或者越过尾端处开始,但是不能在文件起始位置之前开始。
+  3) 如果l_len为0 则表示锁的范围可以扩大到最大可能偏移量
+  4) 为了对整个文件加锁,我们设置l_start和l_whence指向文件开始的位置,并且制定长度为0( 常用的方法是l_start指定为0 l_whence指定为seek_set )
+  
+  记录锁的关系
+    任意多个进程在一个给定的字节上可以有一把共享的读锁,但是在一个给定的字节上只能有一个进程有一个把独占写锁。(有点类似线程的同步的读写锁)
+    
+  fcntl函数的三种命令
+  1) F_GETFL 判断第三个参数flockptr所描述的锁是否会被另外一把锁排斥(阻塞)
+    如果存在一把锁,它阻止创建由flockptr所描述的锁, 则现有锁的信息将重写flockptr所指向的信息。如果不存在这种情况,则除了将l_type设置为F_UNLOCK之外,flockptr所指向的结构体中的其他信息保持不变
+  
+  2) F_SETLK 设置由flockptr所描述的锁。如果我们试图获得一把读锁(l_type为 F_RDLCK)或写锁( l_type为F_WRLCK ),如果兼容性规则阻止系统给我们这把锁,那么fcntl会立即出错返回,此时errno设置为EACCESS
+  EAGAIN 此命令也用来清除flockptr指定的锁(l_type为F_UNLOCK)
+  
+  3) F_SETLKW 此命令是F_SETLK的阻塞版本(W表示等待wait) 如果所请求的读锁或者写锁因为另一个进程当前已经对这个区域进行了加锁而不能被授予,那么调用进程会被休眠,如果请求创建的锁变为可用
+    或者由休眠信号中断,则进程被唤醒
+    
+ 记录锁的分离和组合
+    若第100-199字节是加锁的区域 需要解锁第150字节 则系统就会通过两把锁 把一个连续的区域分割成两段 100-149 151-199
+    如果又对150字节加锁了  则会合并成100-199又跟开始一样了
+    
+  

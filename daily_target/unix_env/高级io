@@ -107,7 +107,32 @@ void FD_ZERO( fd_set* fdset );//将fd_set 变量的所有位设置为0, 在声�
 
 从select 返回过后可以用FD_ISSET测试该集合中的一位是否处于打开状态;
 
+select的第一个参数maxfds1的意思是最大文件描述符+1,也可以将第一个参数设置为FD_SETSIZE这是<sys/select.h>中的一个常量(11024)
+因为描述符编号从0开始,所以要在最大描述符上+1, 而且设置为最大描述符+1的原因在于 避免浪费时间去检查后面没有使用到的描述符
 
+select返回值的3种情况
+  1) 返回-1 表示出错
+  2) 返回0 表示没有描述符准备好,这个一般都发生在有等待时间的情况下
+  3) 返回 >0的数 表示已准备好的描述符数量
+ 
+对于准备好的含义
+  1) 若对读集(readfds)中的一个描述符进行read操作不会阻塞
+  2）若对写集(writefds)中的一个描述符进行write操作不会阻塞
+  3) 若对异常条件集(exceptfds)中的一个描述符有一个未决异常条件
+对于普通文件的描述符,读 写和异常条件总是准备好了的
+
+对于一个描述符阻塞与否 并不影响select是否则色
+
+如果一个描述符上碰到了文件尾端, 则select会认为该描述符是可读的 然后调用read 返回0,这是unix系统指示到达文件尾端的方法,也是判断套接字描述符对方是否关闭的依据
+
+
+select的变体 pselect
+int pselect( int maxfd1, fd_set *restrict readfds, fd_set *restrict writefds, fd_set *restrict exceptfds, const struct timespec *restrict tsptr, const sigset_t *restrict sigmask);
+
+与select的区别如下
+1) select的超时值用timeval结构(秒和微妙)指定,但pselect使用timespec结构(秒和纳秒)，如果平台支持这样的精度就能提供更加精准的超时时间
+2) pselect超时值 被设置为const 这样保证了调用pselect不会改变此值
+3) pselect 可使用可选信号屏蔽字。若sigmask为NULL就和select相同,否则的话屏蔽该信号集指向的信号, 在返回时恢复以前的信号屏蔽字
 
  ***********************************************************************************************************************************************
  

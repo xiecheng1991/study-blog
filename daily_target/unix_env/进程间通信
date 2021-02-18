@@ -1,0 +1,11 @@
+1. 管道
+  管道只能用于两个相关的有共同的祖先进程,并且只能从一端流向一端
+2. 命名管道(fifo)
+  可以用于两个不相关的进程
+  #include<sys/stat.h>
+  int mkfifo(const char* path, mode_t mod);
+  int mkfifoat( int fd, const char* path, mode_t mod );
+  两个函数若成功返回0 失败返回-1
+  mkfifo函数中的mode参数和open函数中的mode相同
+  mkfifoat和mkfifo函数类似 但是mkfifoat 函数可以用来在fd文件描述符表示的目录相关的位置创建一个fifo
+  2.1) 如果path参数指定的是绝对路径名 path参数会被忽略掉,并且行为和mkfifo类似

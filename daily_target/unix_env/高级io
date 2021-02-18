@@ -224,4 +224,15 @@ typedef union epoll_data {
   3.3)maxevents 一个大于0的整数,表示epoll_wait可以返回的最大事件值
   3.4)timeout 阻塞调用的超时值
     如果这个值设置为-1表示不超时 设置为0设置为立即返回 即使没有任何i/o事件发生
+    
+  水平触发和边缘触发
+  水平触发: 通知用户过后 如果用户没有把数据读完 则会继续触发
+  边缘触发: 通知用户过后 如果用户没有把数据读完 则不会继续触发
+ 
+ 存储映射i/o
+  存储映射i/o能将一个磁盘文件映射到一个缓冲区上,于是从缓冲区取数据时,就相当于读文件中相应的字节, 与此类似,将数据存入缓冲区时,相应字节就自动写入文件。这样就可以在不适用read和write的情况下执行i/o
+ 
+ #include<sys/mman.h>
+ void* mmap(void* addr, size_t len, int port, int flag, int fd, off_t off);
+ 
  

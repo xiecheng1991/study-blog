@@ -136,3 +136,39 @@ int pselect( int maxfd1, fd_set *restrict readfds, fd_set *restrict writefds, fd
 
  ***********************************************************************************************************************************************
  
+ 
+ poll
+ 与select类似 不过 它是把三个集合合并了一个集合,构建一个pollfd结构的数组,每个数组元素指定一个描述符编号以及我们感兴趣的事件
+ 
+ #include<poll.h>
+ int poll( struct pollfd fdarray[], nfds_t nfds, int timeout );
+ 返回值: 准备就绪的描述符数目, 若超时返回0 若出错 返回-1
+ struct pollfd {
+    int fd;     //描述符编号
+    short events; //关心的事件
+    short revents; //产生的事件
+ }
+ 
+ 每个元素应该设置为events成员设置为如下几个值的一个或几个
+ POLLIN     可以不阻塞的读高优先级以外的数据
+ POLLRDNORM 可以不阻塞的读普通数据
+ POLLRDBAND 可以不阻塞的读优先级数据
+ POLLPRI    可以不阻塞的读高优先级数据
+ 
+ POLLOUT    可以不阻塞的写普通数据
+ POLLWRNORM 与PPOLLOUT相同
+ POLLWRBAND 可以不阻塞的写优先级数据
+ 
+ POLLERR    已出错
+ POLLHUP    已挂断
+ POLLNVAL   描述符没有引用一个打开文件
+ 
+ 当一个描述符被挂断(POLLHUP)后就不能再写该描述符 但是可以从描述符读到数据
+ 
+最后一个timeout参数指定我们愿意等多长时间
+1) timeout == -1 永远等待
+2) timeout == 0 不等待 类似轮询
+3) timeout > 0 等待timeout毫秒
+
+
+ 

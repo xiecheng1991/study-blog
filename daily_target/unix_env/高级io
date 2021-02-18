@@ -174,5 +174,54 @@ int pselect( int maxfd1, fd_set *restrict readfds, fd_set *restrict writefds, fd
 2) timeout == 0 不等待 类似轮询
 3) timeout > 0 等待timeout毫秒
 
+epoll
+  #include<epoll.h>
+  epoll通过监控注册的多个描述字来进行i/o分发处理, 不同于poll epoll不仅提供了默认的level-triggered(条件触发机制),还提供了性能更加强劲的edge-triggered(边缘触发)机制
+  使用epoll要牢记下面3步
+  1) epoll_create
+    int epoll_create(int size)
+    int epoll_create1(int flags)
+    若成功返回一个大于0的值表示epoll实例,若出错返回-1
+    epoll_create创建一个实例,从linux2.6.8开始参数size自动被忽略 但是也需要一个大于0的值, 这个实例用来调用epoll_ctl和epoll_wait
+    如果这个实例不再需要了需要调用close方法释放epoll,这样内核可以回收epoll实例所分配使用的内核资源
+    
+  2) epoll_ctl
+    int epoll_ctl(int epfd, int op, int fd, struct epoll_event * event);
+    2.1) epfd 刚刚通过epoll_ctl创建的实例
+    2.2) op操作
+      EPOLL_CTL_ADD 向epoll实例注册一个描述符对应的事件
+      EPOLL_CTL_DEL 向epoll实例删除文件描述符对应的事件
+      EPOLL_CTL_MOD 向epoll实例修改文件描述符对应的事件
+    2.3）fd
+      注册事件的描述符(要关心的描述符)
+    2.4) event表示要注册的事件类型,并且可以在这个结构体中设置用户需要的数据,其中最为常见的就是使用联合结构里面的fd字段,表示对应的文件描述符
+      
+typedef union epoll_data {
+     void        *ptr;
+     int          fd;
+     uint32_t     u32;
+     uint64_t     u64;
+ } epoll_data_t;
 
+ struct epoll_event {
+     uint32_t     events;      /* Epoll events */
+     epoll_data_t data;        /* User data variable */
+ };
+ 
+ 类似poll的事件
+ EPOLLIN：表示对应的文件描述字可以读；
+ EPOLLOUT：表示对应的文件描述字可以写；
+ EPOLLRDHUP：表示套接字的一端已经关闭，或者半关闭；
+ EPOLLHUP：表示对应的文件描述字被挂起；
+ EPOLLET：设置为 edge-triggered，默认为 level-triggered。
+ 
+ 3) epoll_wait
+  int epoll_wait(int epfd, struct epoll_event* events, int maxevents, int timeout);
+  如成功返回一个大于0的值 返回0表示超时，出错返回-1
+  epoll_wait函数类似之前的poll与select函数 调用进程被挂起, 在等待内核i/o事件的分发
+  3.1)epfd epoll实例
+  3.2)events 内核返回给用户空间 需要处理的事件, 这是一个数组 数组的大小由maxevents参数决定,数组里面的每个元素都是一个待处理的i/o事件
+  3.3)maxevents 一个大于0的整数,表示epoll_wait可以返回的最大事件值
+  3.4)timeout 阻塞调用的超时值
+    如果这个值设置为-1表示不超时 设置为0设置为立即返回 即使没有任何i/o事件发生
  

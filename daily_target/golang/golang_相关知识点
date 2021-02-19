@@ -12,4 +12,21 @@
 调用方法时，Go 会自动处理值和指针之间的转换。 想要避免在调用方法时产生一个拷贝，或者想让方法可以修改接受结构体的值， 你都可以使用指针来调用方法
  ptr := &st
  ptr可以调用member方法和member1方法 st也可以调用member和member1方法
+ 接口 type **** interface
+ 接口和 指针方法与非指针方法
+      指针方法 可以包含非指针方法 
+      但是非指针方法 不能包含指针方法
+
+通道选择器 select
+      for i := 0; i < 2; i++ {
+        select {
+        case msg1 := <-c1:
+            fmt.Println("received", msg1)
+        case msg2 := <-c2:
+            fmt.Println("received", msg2)
+        }
+    }
+ for range 迭代通道(channel) {
+      只有当ch被关闭 for range才会结束
+ }
       

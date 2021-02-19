@@ -1,5 +1,6 @@
 1. 管道
   管道只能用于两个相关的有共同的祖先进程,并且只能从一端流向一端
+  进程中最后一个引用管道的进程终止时,管道就被完全的删除了
 2. 命名管道(fifo)
   可以用于两个不相关的进程
   #include<sys/stat.h>
@@ -9,3 +10,68 @@
   mkfifo函数中的mode参数和open函数中的mode相同
   mkfifoat和mkfifo函数类似 但是mkfifoat 函数可以用来在fd文件描述符表示的目录相关的位置创建一个fifo
   2.1) 如果path参数指定的是绝对路径名 path参数会被忽略掉,并且行为和mkfifo类似
+  2.2) 如果path参数指定的是相对路径名,则fd参数是一个打开目录的有效文件描述符,路径名和目录有关
+  2.3) 如果path参数指定相对路径名,并且fd参数有一个特殊值AT_FDCWD,则路径名以当前目录开始, mkfifoat和mkfifo类似
+  
+当我们创建了fifo过后需要用open来打开它
+当open一个fifo时,非阻塞标志(O_NONBLOCK),只读open要阻塞到某个其他进程为写打开
+如果指定了o_nonblock，则只读open立即返回。但是如果没有进程为读而打开一个fifo,那么写open将返回-1,并将errno设置成ENXIO
+
+类似管道如果向一个尚无进程可读的命名管道写数据则产生信号SIGPIPE
+如果某个fifo的最后一个写进程关闭了该fifo,则为该fifo的读进程产生一个文件结束标志
+fifo 有以下两种用途
+1) shell命令使用fifo将数据从一条管道传送到另一条时,无需创建中间临时文件。 ps aux|grep 这个shell指令中的丨就是管道操作符
+2) 客户进程和服务器进程,进程之间传递数据
+在最后一个引用管道的进程终止时,虽然fifo的名字还留在系统中，直至被显示的删除,但是留在fifo中的数据已经被删除了
+
+IPC
+  //主要是记录权限和所有者
+  struct ipc_perm {
+      uid_t uid; //拥有者的有效用户id
+      gid_t gid; //拥有者的有效组id
+      uid_t cuid; //创建者的有效用户id
+      gid_t cgid; //创建者的有效组id
+      mode_t mode; //访问权限和模式
+  }
+  
+  ipc的优缺点
+      因为ippc结构时在系统范围内起作用的,没有引用计数.
+      如果进程创建了一个消息队列,并且在该队列中放了几则消息,然后终止 但是该消息队列和消息并不会被删除
+      直到有如下操作
+      1). 某个进程调用msgrcv或者msgctl读消息或者删除消息队列
+      2). 某个进程执行ipcrm(1)命令删除消息队列
+      3). 正在自举的系统删除消息队列
+ 在创建IPC结构时,对所有字段都被赋初值。后面可以通过msgctl, semctl或者shmctl修改uid, gid, mode字段(前提是调用进程必须是IPC结构的创建者或者超级用户)
+ 修改这些字段类似对文件调用chown和chmod
+ 
+ 
+
+消息队列
+    消息队列是消息的链接表,存储在内核中,由消息队列标识符标识
+    msgget用于创建一个新队列或者打开一个现有队列
+    msgsnd将消息添加到队列尾端
+    每个消息包含一个正的长整形字段,一个非负的长度以及实际数据字节数所有这些都在将消息添加到队列时,传送给msgsnd
+    msgrcv用于从队列中取消息
+    
+    //消息队列的数据结构
+    struct msqid_ds {
+        struct ipc_perm    msg_perm; //消息队列的权限和所有者信息
+        msgqnum_t          msg_qnum; //消息队列中消息的数量
+        msglen_t           msg_qbytes; //队列中消息的最大长度 用来限制队列中将要存储的消息最大长度
+        pid_t              msg_lspid; //最后一个发送消息的进程id
+        pid_t              msg_lrpid; //最后一个读取消息的进程id
+        time_t             msg_stime; //最近一次发送消息的时间
+        time_t             msg_rtime; //最近一次读取消息的时间
+        time_t             msg_ctime; //最近一次改变的时间
+    }
+ #include<sys/msg.h>
+ int msgget(key_t key, int flag);
+ 若执行成功, msgget返回非负的消息队列ID,然后这个队列ID用于其他3个消息队列函数
+ 
+ int msgctl( int msqid, int cmd, struct msgqid, struct msqid_ds* buf );
+ cmd参数
+    
+    
+共享存储
+    共享存储允许两个或多个进程共享一个给定的存储区.因为数据不需要在客户进程和服务器之间复制,所以这是最快的一种rpc
+      在多个进程间同步访问一个给定的存储区 但是要保证同步的问题(避免一个进程正在将数据放入共享存储区,另一个进程在访问存储区,则可以使用记录或者互斥锁)

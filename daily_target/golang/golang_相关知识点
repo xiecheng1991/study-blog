@@ -29,4 +29,29 @@
  for range 迭代通道(channel) {
       只有当ch被关闭 for range才会结束
  }
-      
+ 
+ 非阻塞通道     
+for i := 0; i < 2; i++ {
+        select {
+        case msg1 := <-c1:
+            fmt.Println("received", msg1)
+        case msg2 := <-c2:
+            fmt.Println("received", msg2)
+        }
+        default:
+            fmt.Println("no activity")
+    }
+    
+ 如果没有满足条件的case 就走default分支
+ 
+ 
+ 通道的关闭
+ j, more := <- jobs
+ 如果jobs通道被关闭了 more将返回false
+ 这也是for range 迭代通道结束for循环的标记
+ 
+ golang互斥锁
+ var mutex = &sync.Mutex{}
+ mutex.Lock()
+ do something
+ mutex.Unlock()

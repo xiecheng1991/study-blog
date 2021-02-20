@@ -151,3 +151,22 @@ func main() {
     fmt.Printf("This pet is a %s, the name is %q.\n",
         pet.Category(), pet.Name())
 }
+
+如果把一个值为nil的变量赋值给一个接口变量 该接口变量不会为nil
+package main
+import(
+    "fmt"
+)
+
+func main() {
+    var p *int
+    //var i interface{}  = p
+    //或者var i interface{} = nil 则i 为nil
+    var i interface{}
+    if i == nil {
+        fmt.Println( "i is nil" )
+    } else {
+        fmt.Println( "i is not nil" )
+    }   
+}
+i is not nil

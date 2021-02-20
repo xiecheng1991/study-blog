@@ -22,7 +22,7 @@
 package main
 
 import( "fmt" )
-
+只要给结构体提供了String方法那么久可以直接通过fmt.Println进行打印
 type Addr struct {
     province int 
     home int 

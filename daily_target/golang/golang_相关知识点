@@ -172,7 +172,7 @@ func main() {
 i is not nil
 
 golang中的const
-      golang中const的值必须是 number 字符串或者boolean
+      golang中const的值必须是 number 字符串或者boolean,并且常量不可寻址
  const (
 a = 1
 b

@@ -17,6 +17,35 @@
       指针方法 可以包含非指针方法 
       但是非指针方法 不能包含指针方法
 
+结构体内嵌和匿名内嵌
+      //结构体内嵌结构体相关知识
+package main
+
+import( "fmt" )
+
+type Addr struct {
+    province int 
+    home int 
+}
+
+type Person struct {
+    age int 
+    Addr //匿名内嵌
+}
+
+func ( p Person ) String() string {
+    return fmt.Sprintf( "age:%d, province:%d, home:%d", p.age, p.Addr.province, p.Addr.home )
+}
+
+func main() {
+    var p Person = Person{ age:10, Addr:Addr{1, 1} }
+    fmt.Println( p ) 
+}
+
+//输出结果如下
+root@instance-u1n6fu49:~/go/test# go run struct.go 
+age:10, province:1, home:1
+
 通道选择器 select
       for i := 0; i < 2; i++ {
         select {

@@ -170,3 +170,13 @@ func main() {
     }   
 }
 i is not nil
+
+golang中的const
+      golang中const的值必须是 number 字符串或者boolean
+ const (
+a = 1
+b
+c = 2
+d
+)
+fmt.Println(a, b, c, d) // “1 1 2 2”

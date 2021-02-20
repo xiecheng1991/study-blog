@@ -35,11 +35,13 @@ shell 字符串
     str = "Hello "%your_name""
     
  双引号和单引号的区别
- 单引号字串中不能出现单独一个的单引号（对单引号使用转义符后也不行），但可成对出现，作为字符串拼接使用。
+ 单引号字串中不能出现单独一个的单引号（对单引号使用转义符后也不行），但可成对出现，作为字符串拼接使用。要使用变量 需要成对出现的单引号把变量括起来
+ echo 'good morning '$your_name''
+ echo "Hello $your_name"
  
  获取字符串长度
  string="abcd"
- echo ${#string} #输出4
+ echo ${#string} #输出4 加一个大括号来限定变量名称的范围
  
  提取子字符串
  string="runoob is a great site"

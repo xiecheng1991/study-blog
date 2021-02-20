@@ -84,3 +84,70 @@ for i := 0; i < 2; i++ {
  mutex.Lock()
  do something
  mutex.Unlock()
+ 
+ 接口相关
+ package main
+
+import (
+    "fmt"
+)
+
+type Pet interface {
+    Name() string
+    Category() string
+}
+
+type Dog struct {
+    name string // 名字。
+}
+
+func (dog *Dog) SetName(name string) {
+    dog.name = name
+}
+
+func (dog Dog) Name() string {
+    return dog.name
+}
+
+func (dog Dog) Category() string {
+    return "dog"
+}
+
+func main() {
+    // 示例1。
+    dog := Dog{"little pig"}
+    fmt.Printf("The dog's name is %q.\n", dog.Name())
+    var pet Pet = dog //pet 是dog的一个拷贝
+    dog.SetName("monster")
+    fmt.Printf("The dog's name is %q.\n", dog.Name())
+    fmt.Printf("This pet is a %s, the name is %q.\n",
+        pet.Category(), pet.Name())
+    fmt.Println()
+    //上面的输出结果 说明用一个值初始化一个接口 是对那个值得拷贝
+    The dog's name is "little pig".
+    The dog's name is "monster".
+    This pet is a dog, the name is "little pig".
+    如果改成 var pet Pet = &dog
+    The dog's name is "little pig".
+    The dog's name is "monster".
+    This pet is a dog, the name is "monster".
+
+    // 示例2。
+    dog1 := Dog{"little pig"}
+    fmt.Printf("The name of first dog is %q.\n", dog1.Name())
+    dog2 := dog1
+    fmt.Printf("The name of second dog is %q.\n", dog2.Name())
+    dog1.name = "monster"
+    fmt.Printf("The name of first dog is %q.\n", dog1.Name())
+    fmt.Printf("The name of second dog is %q.\n", dog2.Name())
+    fmt.Println()
+
+    // 示例3。
+    dog = Dog{"little pig"}
+    fmt.Printf("The dog's name is %q.\n", dog.Name())
+    pet = &dog
+    dog.SetName("monster")
+    fmt.Printf("The dog's name is %q.\n", dog.Name())
+    fmt.Printf("This pet is a %s, the name is %q.\n",
+        pet.Category(), pet.Name())
+}

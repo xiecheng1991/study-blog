@@ -12,4 +12,6 @@ c语言 可变参数
     当不再需要使用参数指针时,必须调用宏va_end.如果想使用宏va_start或者宏va_copy来重新初始化下一个之前用过的参数指针,也必须先调用va_end
   4) void va_copy( va_list dest, va_list src )
     宏va_copy使用当前的src值来初始化参数指针dest。然后可以使用dest中的备份获取可选参数列表,从src所引用的位置开始
-    
+ 
+ 示例:
+  double add( int n, ... ) //需要指定可变参数的数量

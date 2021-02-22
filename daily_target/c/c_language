@@ -1,0 +1,15 @@
+c语言 可变参数
+  #include<stdarg.h>
+  va_list类型对象 它包含了参数信息。这种类型的对象也称为参数指针,它包含了栈中至少一个参数的位置,可以使用这个参数指针从一个可选参数移动到
+  下一个可选参数，由此函数就可以获取到所有的可选参数.
+  指向参数列表的内存区域 var1 var2 var3  p = &var 然后可以通过类型移动到 var2
+  如果要使用该宏 需要如下四个4个宏来处理该对象指针
+  1) void va_start(va_list* argptr, lastparam)
+    宏va_start使用第一个可选参数的位置来初始化argptr参数指针。该宏的第二个参数必须是函数的最后一个有名称的参数的名称。必须先调用该宏,才可以使用可选参数
+  2) type va_arg( va_list argptr, type )
+    展开宏va_arg会得到当前argptr所指向的可选参数,也会将argptr 指向下一个参数
+  3) void va_end( va_list argptr )
+    当不再需要使用参数指针时,必须调用宏va_end.如果想使用宏va_start或者宏va_copy来重新初始化下一个之前用过的参数指针,也必须先调用va_end
+  4) void va_copy( va_list dest, va_list src )
+    宏va_copy使用当前的src值来初始化参数指针dest。然后可以使用dest中的备份获取可选参数列表,从src所引用的位置开始
+    

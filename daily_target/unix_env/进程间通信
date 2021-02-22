@@ -101,6 +101,17 @@ struct {
     
 }
 
+#include<sys/sem.h>
+int semget(key_t key, int nsems, int flags);
+根据key来区分是创建一个新集合还是引用一个现有集合,创建一个新集合时,需要对semid_ds结构的下列成员赋值
+1) sem_otime 设置为0
+2) sem_ctime 设置为当前时间
+3) sem_nsems 设置为nums( 如果是创建新集合则必须指定nsems,如果是引用现有集合,则将nsems指定为0 )
+
+semctl函数包含了多重信号量操作
+#include<sys/sem.h>
+int semctl( int semid, int semnum, int cmd, .../*union semun arg*/ )
+
 共享存储
     共享存储允许两个或多个进程共享一个给定的存储区.因为数据不需要在客户进程和服务器之间复制,所以这是最快的一种rpc
       在多个进程间同步访问一个给定的存储区 但是要保证同步的问题(避免一个进程正在将数据放入共享存储区,另一个进程在访问存储区,则可以使用记录或者互斥锁)

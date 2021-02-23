@@ -74,4 +74,17 @@ int socket( int domain, int type, int protocol );
         struct in_addr      sin_addr;// ipv4地址
     }
   
-  
+ 点分十进制和二进制之间的地址转换
+ 
+ int inet_addr( const char* cp ); //将一个点分十进制的ip地址转换为一个以网络字节序的二进制数据
+ 
+ char* inet_ntoa( struct in_addr in ); //将一个网络字节序的二进制地址 转换为一个点分十进制字符串
+ 
+ #include<arpa/inet.h>
+ 将网络字节序的二进制地址转换成文本字符串格式
+ const char* inet_ntop( int domain, const void* restrict addr, char* restrict str, socklen size );
+ 返回值:若成功, 返回地址字符串指针; 若出错, 返回NULL
+ 
+ 将文本字符串格式转换成网络字节序的二进制地址
+ int inet_pton( int domain, const char* restrict str, void* restrict addr );
+ 返回值: 若成功返回1 若格式无效返回0 失败返回-1

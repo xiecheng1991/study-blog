@@ -99,3 +99,4 @@ int socket( int domain, int type, int protocol );
     tcp又称带外数据为紧急数据,为了产生一个紧急数据可以在3个send函数中的任何一个指定MSG_OOB标志,如果发送带MSG_OOB标志的数据超过一个字节时  最后一个字节被视为带外数据,
     并且接收到了带外数据的进程会产生SIGURG信号。
     可以通过fcntl(sockfd, F_SETOWN, pid)//pid所指向的进程拥有套接字的所有权
+    因为tcp只有一个紧急数据 所以在一个紧急数据被处理完之前，又来一个紧急数据则旧的紧急数据会被丢弃

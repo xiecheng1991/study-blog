@@ -44,7 +44,14 @@ IPC
  在创建IPC结构时,对所有字段都被赋初值。后面可以通过msgctl, semctl或者shmctl修改uid, gid, mode字段(前提是调用进程必须是IPC结构的创建者或者超级用户)
  修改这些字段类似对文件调用chown和chmod
  
+ 标识符和键
+    key (消息队列, 信号量或共享存储段)都用一个非负整数的标识符加以引用
+    例如要向一个消息队列发送消息或者从消息队列取消息,只需要知道其队列的标识符
  
+每次创建一个ipc结构时都需要指定一个键
+#include<sys/ipc.h>
+key_t ftok( const char* path, int id );
+  path参数必须引用一个现有的文件
 
 消息队列
     消息队列是消息的链接表,存储在内核中,由消息队列标识符标识
@@ -65,6 +72,7 @@ IPC
         time_t             msg_ctime; //最近一次改变的时间
     }
  #include<sys/msg.h>
+ 
  int msgget(key_t key, int flag);
  若执行成功, msgget返回非负的消息队列ID,然后这个队列ID用于其他3个消息队列函数
  

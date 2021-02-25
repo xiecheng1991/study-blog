@@ -6,5 +6,26 @@ unix域套接字
   
   #include<sys/socket.h>
   int socketpair( int domain, int type, int protocol, int sockfd[2] )
+  socketpair( AF_UNIX, SOCK_DGRAM, 0, fd );
+  domain: socketpair只能是AF_UNIX
+  type: SOCK_DGRAM或者SOCK_STREAM (是以数据报还是数据量的方式进行)
+  protocol: 一般给0 取默认的协议
   返回值: 若成功返回0,若出错, 返回-1
+  创建一对相互连接的套接字,但是每个套接字都没有名字。这意味着无关进程不能使用他们。
+命名Unix域套接字
+  #include<sys/un.h>
+  struct sockaddr_un {
+      sa_family_t     sun_family;       //AF_UNIX
+      char            sun_path[108];    //路径名 当我们将一个地址绑定到一个unix域套接字时,系统会调用该路径名创建一个S_IFSOCK类型的文件
+  }
+  
+  并且通过sun_path创建的S_IFSOCK类型的文件 该文件无法打开,也不能用应用程序用于通信
+  
+  如果试图绑定一个同一个地址时，该文件存在那么bind请求会失败。当关闭套接字时并不自动删除该文件，所以必须保证在应用程序退出之前,对该文件执行解除连接操作
+
+  确定绑定地址长度的方法 包含在stddef.h中
+  #define offsetof(TYPE, MEMBER) (((int)&(TYPE*)0)->MEMBER)
+  
+唯一连接
+    服务器进程可以使用标准bind listen accept为客户端进程安排一个唯一的unix域连接, 客户进程使用connect与服务器进程联系,在服务器进程和客户端进程之间就存在了唯一连接
     

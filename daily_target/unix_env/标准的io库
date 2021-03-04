@@ -50,5 +50,26 @@
          1) _IOFBF  全缓冲
          2) _IOLBF  行缓冲
          3) _IONBF  不带缓冲 如果指定为不带缓冲的流,则忽略buf和size参数
+         如果指定全缓冲或者行缓冲,则buf和size可选择地指定一个缓冲区和长度。如果该流是带缓冲的,而buf是NULL，则标准i/o库将自动的为该流分配适当长度的缓冲区,适当长度指的是(BUFFSIZE所指定的值)
       返回值 若成功,返回0 若出错 返回非0
-      注意事项 这些函数一定要在流已被打开后使用
+      注意事项 这些函数一定要在流已被打开后使用，并且在函数内部分配的一个自动变量(局部变量)类型的标准i/o缓冲区,则在该函数返回之前,必须关闭该流。原因在于函数返回过后 变量的生命周期结束了,
+      也就拿不到流对象也就无法关闭它 会造成内存泄漏
+  
+fflush强制刷新一个流,使所有的未写数据都背传送至内核。
+    #include<stdio.h>
+    int fflush( FILE* fp );
+    如果fp为NULL会强制刷新所有的流
+
+打开流
+    #include<stdio.h>
+    FILE* fopen( const char* restrict pathname, const char* restrict type );
+    FILE* freopen( const char* restrict pathname, const char* restrict type, FILE* restrict fp );
+    FILE* fdopen( int fd, const char* type );
+    三个函数返回值 若成功返回文件指针,若出错返回NULL
+    这三个函数的区别如下:
+    1) fopen函数打开路径名为pathname的一个指定的文件
+    2) freopen函数在一个指定的流上打开一个指定的文件,如果该流已经打开,则先关闭该流。若该流已定向,则使用freopen清除该定向。
+    函数一般用于将一个指定的文件打开为一个预定义的流 标准输入 标准输出或者标准错误。
+    3) fdopen函数取一个已有的文件描述符并使一个标准的i/o流与该描述符相结合
+      此函数通常用于由创建管道和网络通信通道函数返回的描述符。因为这些描述符不能用标准的i/o函数fopen打开,因为那些文件是必须要建立连接的 所以不能用fopen打开而是要正常流程的连接建立
+        

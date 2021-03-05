@@ -168,4 +168,6 @@ fflush强制刷新一个流,使所有的未写数据都背传送至内核。
  int fsetpos( FILE* fp, const fpos_t * pos );
  两个函数返回值,若成功返回0,若出错返回非0
  
- 
+格式化i/o
+  #include<stdio.h>
+    int printf(  )

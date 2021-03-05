@@ -117,5 +117,55 @@ fflush强制刷新一个流,使所有的未写数据都背传送至内核。
 
       #include<stdio.h>
       int fputs( const char* restrict str, FILE* restrict fp );
+      fputs将一个以null字符终止的字符串写到指定的流，尾端的终止符null不写出
+      
       int puts( const char* str );
+      puts将一个以null字符终止的字符串写到标准输出,终止符不写出，但是puts随后又将一个换行符写到标准输出。
       两个函数返回值 若成功，返回非负值 若出错返回EOF
+      
+二进制i/o
+   因为用fputc一个字节一个字节的写效率非常低 或者fputs一行一行的写一个结构体时遇到null字符就停止而结构体中可能含有null字符
+   所以提供了下列两个函数执行二进制i/o
+   #include<stdio.h>
+   size_t fread( void* restrict ptr, size_t size, size_t nobj, FILE* restrict fp );
+   size_t fwrite( const void* restrict ptr, size_t size, size_t nobj, FILE* restrict fp );
+   两个函数的返回值: 读或写的对象数
+   常见用法如下
+   1) 读写一个二进制数组
+   float data[10];
+   if ( fwrite( &data[2], sizeof(float), 4, fp ) != 4 ) {
+      printf( "fwrite error" );
+      return
+   }
+   这里的ptr指向的数组
+   size指向的每个元素的大小
+   nobj指明要写入的个数
+2) 读或写一个结构
+    struct {
+        short count;
+        long total;
+        char name[NAMESIZE];
+    } item;
+ if ( fwrite(&item, sizeof(item), 1, fp) != 1 ) {
+    printf( "fwrite error" );
+ }
+ 
+定位流
+  有3种方式定位流
+    1.） ftell和fseek函数
+    2.)  ftello和fseeko函数
+    3.)  fgetpos和fsetpos函数
+ #include<stdio.h>
+ long ftell( FILE* fp );
+ 若成功返回文件当前位置指示,若出错, 返回-1L
+ int fseek( FILE* fp, long offset, int whence );
+ 若成功返回0 若出错 返回-1
+ void rewind( FILE* fp );
+ 使用rewind可以将一个流设置到文件的起始位置。
+ 
+ #include<stdio.h>
+ int fgetpos( FILE* restrict fp, fpos_t * restrict pos );
+ int fsetpos( FILE* fp, const fpos_t * pos );
+ 两个函数返回值,若成功返回0,若出错返回非0
+ 
+ 

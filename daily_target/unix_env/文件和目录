@@ -1,1 +1,36 @@
+函数stat fstat fstatat和lstat
+####可以做一个练习题客户端给一个目录或文件 服务器返回该文件如果是目录则还要返回该目录下的文件
+#include<sys/stat.h>
+1) int stat( const char* restrict pathname, struct stat* restrict buf );
+    一旦给出pathname, stat函数将返回与此命名文件有关的信息结构。
+2) int fstat( int fd, struct stat* restrict buf );
+    fstat函数获得已在描述符fd上打开文件有关信息
+3) int lstat( const char* restrict pathname, struct stat* restrict buf );
+    lstat函数返回该符号链接的有关信息，而不是该符号链接引用的文件的信息
+4) int fstatat( int fd, const char* restrict pathname, struct stat* restrict buf, int flag );
+    
 
+
+文件类型
+  1)  普通文件
+  2) 目录文件
+    这种文件包含了其他文件的名字和指向这些文件的有关信息的指针
+  3) 块特殊文件
+    这种类型的文件提供对设备如磁盘带缓冲的访问,每次访问以固定的长度为单位进行
+  4) 字符特殊文件
+    这种类型的文件提供对设备不带缓冲的访问,每次访问长度可变
+  5) FIFO
+    命名管道文件 用于进程间的通信
+  6) 套接字
+      这种类型的文件用于进程间的网络间通信 也可以用于进程间的非网络通信
+  7) 符号连接
+     这种类型的文件 指向另外一个文件
+  文件类型信息包含在stat结构中的st_mode成员中。可以用如下宏确定文件类型,这些宏的参数都是stat结构中的st_mode成员
+     S_ISREG()    普通文件
+     S_ISDIR()    目录文件
+     S_ISCHR()    字符特殊文件
+     S_ISBLK()    块特殊文件
+     S_ISFIFO()   管道或者FIFO
+     S_ISLNK()    符号链接
+     S_ISSOCK()   套接字
+  

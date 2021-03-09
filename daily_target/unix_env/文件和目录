@@ -33,4 +33,94 @@
      S_ISFIFO()   管道或者FIFO
      S_ISLNK()    符号链接
      S_ISSOCK()   套接字
-  
+设置用户ID和组ID
+    与一个文件相关的ID有六个或更多
+       1) 实际用户ID
+       2) 实际组ID
+       以上两个表明实际上我们是谁
+       
+       3) 有效用户ID
+       4) 有效组ID
+       5) 附属组ID
+       用于文件访问权限检查
+       
+       6) 保存的设置用户ID
+       7) 保存的设置组ID
+       由exec函数报错
+       
+     每个文件都有一个所有者和组所有者
+     所有者 stat结构中的st_uid指定
+     组所有者 stat结构中的st_gid指定
+文件访问权限
+    stat结构中的st_mode值也包含了对文件的访问权限,所有文件类型都有访问权限
+    9个访问权限位
+    S_IRUSR     用户读
+    S_IWUSR     用户写
+    S_IXUSR     用户执行
+    
+    S_IRGRP     组读
+    S_IWGRP     组写
+    S_IXGR      组执行
+    
+    S_IROTH     其他读
+    S_IWOTH     其他写
+    S_IXOTH     其他执行
+    
+ chmod命令可以修改这9个权限位 u表示用户 g表示组 o表示其他
+ 
+ 新文件和目录所有权
+    新文件的用户ID设置为进程的有效用户ID
+    关于组ID则可能有如下两种情况
+    1) 新文件的组ID 可以是进程有效组ID
+    2) 新文件的组ID 可以是它所在目录的组ID
+    
+  函数access和faccess
+    #include<unistd.h>
+    int access( const char* pathname, int mode );
+    int faccess( int fd, const char* pathname, int mode, int flag );
+    两个函数的返回值;若成功返回0 若出错返回-1
+    如果测试文件是否已经存在,mode就为F_OK 否则mode就为如下所列常量的按位与
+    R_OK 测试读权限
+    W_OK 测试写权限
+    X_OK 测试执行权限
+    
+  函数umask
+    进程相关联的文件模式屏蔽字,并返回之前的值
+    #include<sys/stat.h>
+    mode_t umask( mode_t cmask );
+    其中cmask是由上面9个与文件相关联的权限位通过或运算构建出来的
+    通过例子可以得出 屏蔽掉通过该程序的权限为 如果umask(0)表示不屏蔽
+   #include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<errno.h>
+#include<string.h>
+
+//文件所有者 可读写
+//文件所属组 可读写
+//其他人 可读写
+#define RWRWRW (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+
+int
+main( int argc, char* argv[] ) { 
+    umask(0);
+    if ( creat( "foo", RWRWRW ) == -1 ) { 
+        printf( "create foo error:%s\n", strerror( errno ) );
+        return -1; 
+    }   
+
+    umask( S_IRGRP|S_IWGRP|S_IWOTH|S_IROTH );
+    if ( creat( "bar", RWRWRW ) == -1 ) { 
+        printf( "create bar error:%s\n", strerror( errno ) );
+        return -1; 
+    }   
+
+    return 0;
+}
+root@instance-u1n6fu49:~/linux/unix_env/director_file# ls -l bar
+-rw------- 1 root root 0 Mar  9 15:57 bar 所以bar文件就只能文件所有者可读写
+
+root@instance-u1n6fu49:~/linux/unix_env/director_file# ls -l foo
+-rw-rw-rw- 1 root root 0 Mar  9 15:57 foo 所以foo文件 文件所有者 所属组和其他人都可读写

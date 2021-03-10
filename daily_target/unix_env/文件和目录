@@ -124,3 +124,13 @@ root@instance-u1n6fu49:~/linux/unix_env/director_file# ls -l bar
 
 root@instance-u1n6fu49:~/linux/unix_env/director_file# ls -l foo
 -rw-rw-rw- 1 root root 0 Mar  9 15:57 foo 所以foo文件 文件所有者 所属组和其他人都可读写
+
+文件长度
+    stat结构成员st_size表示以字节为单位的文件的长度。此字段只针对普通文件,目录和符号有用
+    1) 对于普通文件，其文件长度可以是0, 在开始读取这种文件时, 将得到文件结束标志
+    2) 对于目录,文件长度通常是一个数(16或者512)的整数倍
+    3) 符号链接, 文件长度是在文件名中的实际字节数 并且它并不包含通常c语言用作名字结尾的null字节
+    st_blksize和st_blocks 其中第一个是对文件i/o较合适的块长度,第二个是所分配的实际512字节块块数。3.9节提到了当将st_blksize用于读操作时，读一个文件所需时间量最少。
+    
+    文件空洞
+        引起文件空洞问题的原因在于所设置的偏移量超过文件尾端，并写入某些数据后造成的

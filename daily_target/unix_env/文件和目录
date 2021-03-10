@@ -175,4 +175,23 @@ root@instance-u1n6fu49:~/linux/unix_env/director_file# ls -l foo
     这两个文件将一个现有文件长度截断为length,如果以前的长度为length,则超过length以外的数据就不能访问了,如果以前的长度小于length则文件长度将增加
     在以前的文件尾端和新的文件尾端之间的数据将读作0(也就是可能在文件中创建了一个空洞)
     
+文件系统
 
+函数link, linkat, unlink, unlinkat, remove
+    任何一个文件可以有多个目录项指向其i节点。创建一个指向现有文件的链接方法是使用link函数或者linkat函数
+    #include<unistd.h>
+    int link( const char* exsitingpath, const char* newpath );
+    int linkat( int efd, const char* exsitingpath, int nfd, const char* newpath, int flag );
+    若成功返回0 若出错返回-1
+    
+    这两个函数创建一个新的目录项newpath,它引用现有文件exsitingpath。 如果newpath已经存在,则返回出错,只创建newpath的最后一个分量, 路径中的其他部分应当已经存在。
+    
+    为了删除一个现有的目录项，可以调用unlink函数
+    #include<unistd.h>
+    int unlink( const char* pathname );
+    int unlinkat( int fd, const char* pathname, int flag );
+    两个函数的的返回值 若成功返回0 若出错返回-1
+    
+    这两个函数删除目录项,并将由pathname所引用的文件链接计数-1 如果对文件还有其他链接，则任可以通过其他链接访问该文件的数据
+    文件删除逻辑
+    关闭一个文件时,内核首先检查打开该文件的进程个数,如果计数达到0，内核再去检查链接计数,如果计数也是0,那么久删除该文件的内容,这样能解释close和shutdown的工作原理

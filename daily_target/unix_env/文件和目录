@@ -134,3 +134,33 @@ root@instance-u1n6fu49:~/linux/unix_env/director_file# ls -l foo
     
     文件空洞
         引起文件空洞问题的原因在于所设置的偏移量超过文件尾端，并写入某些数据后造成的
+        思考了一下用流 也会出现同样的情况
+      1 //文件空洞
+  2 #include<stdio.h>          
+  3 #include<stdlib.h>         
+  4 #include<unistd.h>
+  5 #include<fcntl.h>          
+  6 #include<errno.h>          
+  7 #include<string.h>         
+  8 
+  9 int
+ 10 main( int argc, char* argv[] ) {
+ 11                            
+ 12     int fd = open( "test", O_CREAT|O_RDWR ); 
+ 13     if ( fd == -1 ) {      
+ 14         printf( "open test error:%s\n", strerror( errno ) );
+ 15         return -1;
+ 16     }
+ 17 
+ 18     if ( lseek( fd, 10, SEEK_END ) == -1 ) {
+ 19         printf( "lseek error:%s\n", strerror( errno ) );
+ 20         return -1;
+ 21     }
+ 22 
+ 23     if ( write( fd, "hello world", 12 ) == -1 ) {
+ 24         printf( "write error:%s\n", strerror( errno ) );
+ 25         return -1;
+ 26     }
+ 27 
+ 28     return 0;
+ 29 }

@@ -164,3 +164,15 @@ root@instance-u1n6fu49:~/linux/unix_env/director_file# ls -l foo
  27 
  28     return 0;
  29 }
+ 
+ 文件截断
+    在打开文件时使用O_TRUNC 标志可以使一个文件长度为0
+    可以使用truncate和ftruncate进行文件截断
+    #include<unistd.h>
+    int truncate( const char* pathname, off_t length );
+    int ftruncate( int fd, off_t length );
+    两个函数的返回值：若成功返回0,若出错返回-1
+    这两个文件将一个现有文件长度截断为length,如果以前的长度为length,则超过length以外的数据就不能访问了,如果以前的长度小于length则文件长度将增加
+    在以前的文件尾端和新的文件尾端之间的数据将读作0(也就是可能在文件中创建了一个空洞)
+    
+

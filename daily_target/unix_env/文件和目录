@@ -210,4 +210,43 @@ root@instance-u1n6fu49:~/linux/unix_env/director_file# ls -l foo
     ssize_t readlinkat( int fd, const char* restrict pathname, char* restrict buf, size_t bufsize );
     两个函数的返回值:若成功,返回读取的字节数,若出错, 返回-1
     
+函数mkdir 和mkdirat 和rmdir
+    #include<sys/stat.h>
+    //以下两个函数用于创建目录
+    int mkdir( const char* pathname, mode_t mode );
+    int mkdirat( int fd, const char* pathname, mode_t mode );
+    两个函数返回值:若成功,返回0 若出错返回-1
+    这两个函数创建一个新的空目录。其中.和..目录项是自动创建的，所指定的文件访问权限mode由进程的文件模式创建屏蔽字修改。
+    
+    用rmdir函数可以删除一个空目录。空目录是只包含.和..这两项的目录
+    #include<unistd.h>
+    int rmdir( const char* pathname );
+    返回值若成功, 返回0; 若出错, 返回-1
+    
+读目录
+    对某个目录具有访问权限的任一用户都可以读该目录，但是为了防止文件系统产生混乱 只有内核才能写目录
+    #include<dirent.h>
+    DIR* opendir( const char* pathname );
+    
+    //把一个打开的文件描述符转换成一个目录处理函数所需要的DIR结构
+    DIR* fdopendir( int fd );
+    两个函数返回值:若成功 返回指针，若失败 返回NULL
+    
+    struct dirent *readdir( DIR* dp );
+    返回值若成功,返回指针,若在目录尾或出错, 返回NULL
+    
+    void rewinddir( DIR* dp );
+    int closedir( DIR* dp );
+    若成功返回0 若出错返回-1
+    
+    long telldir( DIR* dp );
+    返回与dp相关的目录中的位置
+    
+    void seekdir( DIR* dp, long loc );
+    
+   dirent结构相关
+   ino_t d_ino; //i_node number 磁盘中i结点编号
+   char d_name[]; //null-terminated filename 以文件结束符结尾的 文件名
+   d_name 大小并没有指定, 但它必须保证能包含至少NAME_MAX个字节(不包含终止null字符)
+   
     

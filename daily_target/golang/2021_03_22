@@ -1,0 +1,13 @@
+接口判空的理解因为接口内部是两个字段
+type
+value
+所以针对接口判空
+var a interface{}
+1. a = nil
+  这种情况下可以直接判空
+2. var b int b = nil a = b
+  这种情况下不能直接判空 因为这种情况下接口的value为nil但是这个接口并不为nil
+  
+io.ReadFull()
+func ReadFull(r Reader, buf []byte) (n int, err error)
+  遇到EOF即返回 读到的字节数少于len(buf)会报错

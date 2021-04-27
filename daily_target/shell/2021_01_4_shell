@@ -214,8 +214,9 @@ this is a
  --help 显示帮助信息
  --version 显示版本信息并退出
   
-  
-    
+  source与shell的区别
+  source(.点操作) filename 是在当前环境下执行并且继承了命令或者脚本的环境变量 就好像之前得cd A10.sh . ./cd .....
+  shell filename shell脚本都是创建一个子进程来执行 所以没有继承父进程得环境和变量等等
   
   
 

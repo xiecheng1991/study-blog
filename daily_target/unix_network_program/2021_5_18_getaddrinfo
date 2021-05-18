@@ -1,0 +1,63 @@
+#include<netdb.h>
+
+//主要解决了把主机名和服务名/端口号 转换成套接字地址结构的问题
+int getaddrinfo( const char* hostname, const char* service, const struct addrinfo* hints, struct addrinfo **result )
+
+参数:
+  1. hostname 是一个主机名或地址串
+  2. service 是一个服务名或者十进制端口号数串
+  3. hints 可以是空指针 也可以是一个指向某个addrinfo结构体的指针,调用者在这个结构中填入关于期望返回的信息类型的暗示
+  4. resualt 返回转换结果列表
+  
+ //看例子
+   1 #include<netdb.h>
+  2 #include<stdio.h>
+  3 #include<unistd.h>
+  4 #include<errno.h>
+  5 #include<string.h>
+  6 #include<arpa/inet.h>
+  7 
+  //hints为NULL时
+  8 int
+  9 main( int argc, char* argv[] ) { 
+ 10     struct addrinfo *res;
+ 11     struct addrinfo hints = {0};
+ 12     hints.ai_family = AF_INET;
+ 13     hints.ai_flags = AI_CANONNAME;
+ 14     hints.ai_socktype = SOCK_STREAM;
+ 15 //  if ( getaddrinfo( "127.0.0.1", "6379", &hints, &res ) != 0 ) { //非NULL 时res只会返回满足hints条件的数据
+ 16     if ( getaddrinfo( "127.0.0.1", "6379", NULL, &res ) != 0 ) { //为NULL时 res返回多条数据
+ 17         printf("getaddrinfo error:%s\n", strerror(errno));
+ 18         return -1;
+ 19     }   
+ 20     
+ 21     struct addrinfo* p = res;
+ 22     while( p != NULL ) { 
+ 23         struct sockaddr_in* in;
+ 24     ¦  in = (struct sockaddr_in *)p->ai_addr;
+ 25         printf("name:%s addr:%s family:%d socktype:%d\n", p->ai_canonname, inet_ntoa(in->sin_addr), p->ai_family, p->ai_socktype);
+ 26         p = p->ai_next;
+ 27     }   
+ 28     
+ 29     printf("\n");
+ 30     return 0;
+ 31     
+ 32 }
+ 
+ root@instance-u1n6fu49:~/linux/network/getaddrinfo# ./main 
+name:(null) addr:127.0.0.1 family:2 socktype:1
+name:(null) addr:127.0.0.1 family:2 socktype:2
+name:(null) addr:127.0.0.1 family:2 socktype:3
+
+
+非NULL时
+    struct addrinfo hints = {0};
+    hints.ai_family = AF_INET;
+    hints.ai_flags = AI_CANONNAME;
+    hints.ai_socktype = SOCK_STREAM;
+  if ( getaddrinfo( "127.0.0.1", "6379", &hints, &res ) != 0 ) { //非NULL 时res只会返回满足hints条件的数据
+
+root@instance-u1n6fu49:~/linux/network/getaddrinfo# ./main
+name:127.0.0.1 addr:127.0.0.1 family:2 socktype:1
+
+--总结 getaddrinfo主要就是为了将主机名和服务名转换成套接字地址结构的功能,特别适用于的时候我只知道服务名而不知道端口的情况

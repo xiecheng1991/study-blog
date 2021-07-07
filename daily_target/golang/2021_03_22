@@ -8,6 +8,36 @@ var a interface{}
 2. var b int b = nil a = b
   这种情况下不能直接判空 因为这种情况下接口的value为nil但是这个接口并不为nil
   
+  reflect包相关理解
+  reflect.TypeOf(interface{}) 返回该接口中的type就是类型
+  reflect.ValueOf(interface{}) 返回该接口中的value就是持有的值
+  reflect.ValueOf(interface{}).Elem() 如果该接口持有的值不是指针或者结构体则会panic 如果是指针或者接口 他会去找具体指向的值的类型
+  比如
+  
+  func test(arg interface{}) {
+    cfgType := reflect.TypeOf(arg)
+
+    fmt.Println(cfgType, cfgType.Kind())
+
+    cfgValue := reflect.ValueOf(arg).Elem()
+    fmt.Println(cfgValue)
+
+}
+  
+  type test1 struct {      
+  }
+  
+  func main() {
+    test(&test1{})
+  }
+
+*main.test1 ptr
+{}
+
+reflect.Type()和reflect.Kind()
+reflect.Type()返回的是 报名.类型 自定义类型 如果是基本类型Type和Kind是相同的 *main.test1
+reflect.Kind()返回的是他的基本类型 比如ptr
+ 
 io.ReadFull()
 func ReadFull(r Reader, buf []byte) (n int, err error)
   遇到EOF即返回 读到的字节数少于len(buf)会报错

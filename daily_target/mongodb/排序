@@ -1,0 +1,3 @@
+要对mongo的查询结果进行排序直接
+db.collecions.find().sort({key:1})升序
+db.collections.find().sort({key:-1})降序

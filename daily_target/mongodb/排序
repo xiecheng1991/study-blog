@@ -1,3 +1,8 @@
 要对mongo的查询结果进行排序直接
 db.collecions.find().sort({key:1})升序
 db.collections.find().sort({key:-1})降序
+
+mongodb limit和skip
+如果你需要在MongoDB中读取指定数量的数据记录，可以使用MongoDB的Limit方法，limit()方法接受一个数字参数，该参数指定从MongoDB中读取的记录条数。
+我们除了可以使用limit()方法来读取指定数量的数据外，还可以使用skip()方法来跳过指定数量的数据，skip方法同样接受一个数字参数作为跳过的记录条数。
+但是skip方法是一条一条得数过去的 所以当数据量过大时性能会急剧下降
